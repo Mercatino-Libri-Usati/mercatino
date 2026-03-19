@@ -1,0 +1,156 @@
+Project "Sito Mercatino" {
+  database_type: 'MySQL'
+}
+
+Table adozioni {
+  ID int [primary key]
+  ID_catalogo int
+  scuola text
+  indirizzo text
+  classe text
+  materia text
+  nuova text
+  da_acquistare text
+  consigliato text
+  anno int
+}
+
+
+
+Table catalogo {
+  ID int [primary key]
+  ISBN text
+  titolo text
+  casa_editrice text
+  autore text
+  prezzo float
+  materia text
+  sottotitolo text
+  vol text
+}
+
+Table libron {
+  id bigint [primary key]
+  prezzo decimal
+  id_libro int
+  id_ritiro int
+  id_prenotazione int
+  id_vendita int
+  id_restituzione int
+  numero_libro int
+  note text
+}
+
+Table log_operazioni {
+  id int [primary key]
+  data date
+  tipo enum
+  libro bigint
+  operatore int
+  importo decimal
+  causale varchar
+}
+
+Table personal_access_tokens {
+  id bigint [primary key]
+  tokenable_type varchar
+  tokenable_id bigint
+  name varchar
+  token varchar
+  abilities text
+  last_used_at timestamp
+  expires_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table prenotazionen {
+  id bigint [primary key]
+  data timestamp
+  id_utente int
+  numero_prenotazione int
+  url_pdf text
+}
+
+Table pwd_request {
+  id int [primary key]
+  id_utenti int
+  date_req datetime
+  token varchar
+}
+
+
+
+Table restituzionen {
+  id bigint [primary key]
+  data timestamp
+  id_utente int
+  numero_restituzione int
+  url_pdf text
+}
+
+Table ritiron {
+  id bigint [primary key]
+  data timestamp
+  id_utente int
+  numero_ritiro int
+  url_pdf text
+}
+
+
+
+Table users {
+  ID int [primary key]
+  ID_utenti int
+  nickname text
+  password text
+  privilegi int
+  ID_registro int
+  sede smallint
+  attivo tinyint
+}
+
+Table utenti {
+  ID int [primary key]
+  nome text
+  cognome text
+  telefono text
+  mail text
+  scuola text
+  ID_registro int
+  data datetime
+  codiceVerifica varchar
+}
+
+Table venditan {
+  id bigint [primary key]
+  data timestamp
+  id_utente int
+  numero_vendita int
+  url_pdf text
+}
+
+// Foreign Keys Explicitly Defined in Database
+Ref: adozioni.ID_catalogo > catalogo.ID
+Ref: log_operazioni.operatore > utenti.ID
+Ref: log_operazioni.libro > libron.id
+
+// Implicit Relationships based on naming conventions
+Ref: libron.id_libro > catalogo.ID
+Ref: libron.id_ritiro > ritiron.id
+Ref: libron.id_prenotazione > prenotazionen.id
+Ref: libron.id_vendita > venditan.id
+Ref: libron.id_restituzione > restituzionen.id
+
+Ref: prenotazionen.id_utente > utenti.ID
+Ref: restituzionen.id_utente > utenti.ID
+Ref: ritiron.id_utente > utenti.ID
+Ref: venditan.id_utente > utenti.ID
+
+Ref: personal_access_tokens.name > utenti.ID
+
+Ref: pwd_request.id_utenti > utenti.ID
+
+
+
+Ref: users.ID_utenti > utenti.ID

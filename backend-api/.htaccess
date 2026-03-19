@@ -1,0 +1,16 @@
+ErrorDocument 403 /__tmp/topweb.shtml
+AddHandler php7.4-script .php
+
+RewriteEngine On
+
+# Forza HTTPS
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301,NE]
+
+# Se la richiesta inizia con /api, inoltra al backend
+RewriteCond %{REQUEST_URI} ^/api
+RewriteRule ^api/(.*)$ /nuovobackend/public/index.php [L,QSA]
+
+
+

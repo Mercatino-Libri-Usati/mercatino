@@ -1,0 +1,12 @@
+parameters:
+  reportUnmatchedIgnoredErrors: false
+  ignoreErrors:
+    - identifiers:
+        - cast.double  # TODO: sistemare casting
+        - binaryOp.invalid
+        - method.nonObject
+        - property.nonObject
+        - missingType.generics
+        - missingType.iterableValue
+    - message: '#Access to an undefined property .*::\$.*#' # TODO: Rimuovere quando i modelli avranno PHPDoc
+    - message: '#Call to an undefined static method .*::.*#' # TODO: Rimuovere quando i modelli avranno PHPDoc

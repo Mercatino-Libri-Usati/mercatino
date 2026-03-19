@@ -1,0 +1,12 @@
+- Dashboard : sistemare leggermente grafica
+- cassa (attuale riassunto.php)  ordinare meglio , presentazione migliore, aggiungere 
+- ritiro : va bene  , pulire
+- vendita : come ritiro ma cambiano chiamate dietro. e tabella 
+- restituzione : nuova ; si deve poter selezionare utente,  compare elenco libri che ha portato , e poi fare ricevuta
+-utenti 
+-magazzino
+-catalogo
+-prenotati
+-ricevute   
+
+Risistemare prenotati nel db e nella Area Utenete.
