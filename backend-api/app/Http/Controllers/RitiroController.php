@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\LibroHelper;
 use App\Models\Catalogo;
+use App\Models\Libri;
 use App\Models\Operazione;
 use App\Models\Ritiro;
 use App\Services\PdfRicevuteService;
@@ -12,17 +13,27 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @group Ritiro
+ */
 class RitiroController extends Controller
 {
     /**
-     * Restituisce i libri di una ricevuta di ritiro.
-     * GET /api/ricevute/ritiro/{id}
+     * Dettaglio ritiro
+     *
+     * Restituisce i dati della ricevuta di ritiro con i libri associati.
+     *
+     * @urlParam id int required L'ID della prenotazione da visualizzare. No-example
+     *
+     * @queryParam metadati boolean Dati della ricevuta da includere. No-example
+     * @queryParam libri boolean Libri della ricevuta da includere. No-example
+     *
+     * @responseField id ID della ricevuta.
+     * @responseField numero_ritiro Numero progressivo del ritiro.
+     * @responseField libri Elenco dei libri del ritiro.
      */
     public function showRitiro(Request $request, int $id): JsonResponse
     {
-        if ($id <= 0) {
-            return $this->errorResponse('ID non valido', 422);
-        }
 
         $metadati = $request->boolean('metadati', true);
         $libri = $request->boolean('libri', true);
@@ -31,24 +42,25 @@ class RitiroController extends Controller
             return $this->errorResponse('Nessun parametro valido fornito', 422);
         }
 
-        if (! Ritiro::where('ID', $id)->exists()) {
+        $risposta = Ritiro::dettaglioRicevuta($id, $metadati, $libri);
+        if (is_null($risposta)) {
             return $this->notFoundResponse("Ritiro $id non trovato");
-        }
-
-        $risposta = [];
-        if ($metadati) {
-            $risposta['metadati'] = Ritiro::getMetadati($id);
-        }
-        if ($libri) {
-            $risposta['libri'] = Ritiro::getLibri($id);
         }
 
         return $this->successResponse($risposta);
     }
 
     /**
-     * Inserisce una ricevuta di ritiro con più libri.
-     * POST /api/ricevute/ritiro
+     * Nuovo ritiro
+     *
+     * Crea una nuova ricevuta di ritiro con uno o più libri.
+     *
+     * @bodyParam userid integer required L'ID dell'utente che effettua il ritiro. No-example
+     * @bodyParam libri array required Elenco dei libri da ritirare. No-example
+     *
+     * @responseField id_ritiro ID della ricevuta creata.
+     * @responseField numero_ritiro Numero progressivo della ricevuta.
+     * @responseField pdf_url URL del PDF generato.
      */
     public function addRitiro(Request $request): JsonResponse
     {
@@ -72,21 +84,27 @@ class RitiroController extends Controller
     // Elabora l'inserimento del ritiro in una transazione.
     private function processRitiro(int $userId, array $elencoLibri): JsonResponse
     {
-        DB::beginTransaction();
-
         try {
-            $anno = (int) now()->format('Y');
-            $numeroRitiro = $this->getNextProgressivo('ritiron', 'numero_ritiro', $anno);
+            $ritiro = DB::transaction(function () use ($userId, $elencoLibri): array {
+                $anno = (int) now()->format('Y');
+                $numeroRitiro = $this->getNextProgressivo('ritiri', 'numero_ritiro', $anno);
 
-            $ritiroId = DB::table('ritiron')->insertGetId([
-                'data' => now(),
-                'id_utente' => $userId,
-                'numero_ritiro' => $numeroRitiro,
-            ]);
+                $ritiroId = Ritiro::create([
+                    'data' => now(),
+                    'numero_ritiro' => $numeroRitiro,
+                    'id_utente' => $userId,
+                ])->id;
 
-            $this->inserisciLibri($ritiroId, $elencoLibri, $anno);
+                $this->inserisciLibri($ritiroId, $elencoLibri, $anno);
 
-            DB::commit();
+                return [
+                    'id_ritiro' => $ritiroId,
+                    'numero_ritiro' => $numeroRitiro,
+                ];
+            });
+
+            $ritiroId = $ritiro['id_ritiro'];
+            $numeroRitiro = $ritiro['numero_ritiro'];
 
             // Recupera i dati completi dei libri appena inseriti
             $libriCompleti = Ritiro::getLibri($ritiroId);
@@ -102,14 +120,10 @@ class RitiroController extends Controller
             );
 
             // Aggiungi il link al PDF nel db
-            DB::table('ritiron')->where('id', $ritiroId)->update([
-                'url_pdf' => $pdfUrl,
-            ]);
+            Ritiro::aggiornaUrlPdf($ritiroId, $pdfUrl);
 
             return $this->createdResponse(['id_ritiro' => $ritiroId, 'numero_ritiro' => $numeroRitiro, 'pdf_url' => $pdfUrl]);
         } catch (\Throwable $e) {
-            DB::rollBack();
-
             return $this->errorResponse(self::MSG_ERRORE_INTERNO.'('.$e->getMessage().')', Response::HTTP_UNPROCESSABLE_ENTITY);
         }
     }
@@ -127,16 +141,16 @@ class RitiroController extends Controller
             $catalogo = Catalogo::where('ISBN', $isbn)->firstOrFail();
             $numeroLibro = $this->getNextNumeroLibro($anno);
 
-            $libroId = DB::table('libron')->insertGetId([
+            $libroId = Libri::create([
                 'prezzo' => (float) $libro['prezzo'],
-                'id_libro' => $catalogo->ID,
+                'id_catalogo' => $catalogo->ID,
                 'id_ritiro' => $ritiroId,
                 'numero_libro' => $numeroLibro,
                 'id_prenotazione' => null,
                 'id_vendita' => null,
                 'id_restituzione' => null,
                 'note' => $libro['note'] ?? null,
-            ]);
+            ])->id;
             Operazione::aggiungi([
                 'tipo' => 'ritiro',
                 'libro' => $libroId,
@@ -148,10 +162,10 @@ class RitiroController extends Controller
     // Calcola il prossimo numero progressivo annuale per i libri.
     private function getNextNumeroLibro(int $anno): int
     {
-        $maxLibro = DB::table('libron')
-            ->join('ritiron', 'libron.id_ritiro', '=', 'ritiron.id')
-            ->whereYear('ritiron.data', $anno)
-            ->max('libron.numero_libro');
+        $maxLibro = Libri::query()
+            ->join('ritiri', 'libri.id_ritiro', '=', 'ritiri.id')
+            ->whereYear('ritiri.data', $anno)
+            ->max('libri.numero_libro');
 
         return $maxLibro ? $maxLibro + 1 : 1;
     }

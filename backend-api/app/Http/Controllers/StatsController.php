@@ -2,25 +2,35 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Libri;
+use App\Models\Operazione;
+use App\Models\Utente;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * @group Cassa
+ */
 class StatsController extends Controller
 {
+    /**
+     * Statistiche
+     *
+     * Ottiene statistiche generali sul sistema, come numero di libri e incassi.
+     *
+     * @responseField n_libri Numero totale di libri.
+     * @responseField venduti Numero di libri venduti.
+     * @responseField n_utenti Numero di utenti.
+     * @responseField profitto Profitto totale in cassa.
+     * @responseField ricavo Ricavo totale dalle vendite.
+     */
     public function getStats(): JsonResponse
     {
-        $nLibri = DB::table('libron')->count();
-        $venduti = DB::table('libron')->whereNotNull('id_vendita')->count();
-        $nUtenti = DB::table('utenti')->count();
-        $profitto = DB::table('log_operazioni')->sum('importo');
-        $ricavo = DB::table('log_operazioni')->where('tipo', 'vendita')->sum('importo');
-
         return $this->successResponse([
-            'n_libri' => $nLibri,
-            'venduti' => $venduti,
-            'n_utenti' => $nUtenti,
-            'profitto' => $profitto,
-            'ricavo' => $ricavo,
+            'n_libri' => Libri::count(),
+            'venduti' => Libri::whereNotNull('id_vendita')->count(),
+            'n_utenti' => Utente::count(),
+            'profitto' => Operazione::sum('importo'),
+            'ricavo' => Operazione::where('tipo', 'vendita')->sum('importo'),
         ]);
     }
 }

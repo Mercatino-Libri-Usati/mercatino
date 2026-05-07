@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { apiClient } from '@/apiConfig'
-import { toast } from '@/toast'
 
 // --- Logica dei Colori ---
 const colors = [
@@ -111,29 +110,6 @@ export const useCatalogoStore = defineStore('catalogoStore', {
 
     resetFiltro() {
       this.libriFiltrati = [...this.catalogo]
-    },
-
-    async updatePrezzo(id_catalogo, prezzo) {
-      const prezzoNum = parseFloat(prezzo)
-      if (isNaN(prezzoNum)) throw new Error('Prezzo non valido')
-
-      try {
-        await apiClient.patch(`/api/catalogo/${id_catalogo}/prezzo`, { prezzo: prezzoNum })
-
-        // Aggiornamento reattivo di entrambi gli array
-        const update = (lista) => {
-          const libro = lista.find((l) => l.id_catalogo === id_catalogo)
-          if (libro) libro.prezzo = prezzoNum
-        }
-
-        update(this.catalogo)
-        update(this.libriFiltrati)
-
-        return true
-      } catch {
-        toast.error('Errore aggiornamento prezzo')
-        return false
-      }
     },
   },
 })

@@ -1,15 +1,49 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { apiClient } from '@/apiConfig'
 import { toast } from '@/toast.js'
 
 const loading = ref(true)
 const panels = ref([])
-const operazioniPerGiorno = ref([])
+
+const tutteLeOperazioni = ref([])
+const mostraCostoZero = ref(false)
 
 const cassaAttuale = ref(0)
 const bilancioGiorno = ref(0)
-const operazioniOggi = ref([])
+
+const operazioniFiltrate = computed(() => {
+  if (mostraCostoZero.value) {
+    return tutteLeOperazioni.value
+  }
+  return tutteLeOperazioni.value.filter((o) => Number(o.importo) !== 0)
+})
+
+const operazioniPerGiorno = computed(() => {
+  const mappa = {}
+  for (const operazione of operazioniFiltrate.value) {
+    const giorno = operazione.data.slice(0, 10)
+    if (!mappa[giorno]) {
+      mappa[giorno] = []
+    }
+    mappa[giorno].push(operazione)
+  }
+  return Object.entries(mappa)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([giorno, ops]) => {
+      const totale = ops.reduce((s, o) => s + Number(o.importo), 0)
+      return {
+        giorno,
+        ops,
+        totale,
+      }
+    })
+})
+
+const operazioniOggi = computed(() => {
+  const dateOggi = new Date().toISOString().slice(0, 10)
+  return operazioniFiltrate.value.filter((o) => o.data.startsWith(dateOggi))
+})
 
 // Dialog correzione manuale
 const dialogAggiungiCorrezione = ref(false)
@@ -48,31 +82,9 @@ async function caricaDati() {
     const entry = resCassa.data.bilancio_giornaliero.find((b) => b.giorno === dateOggi)
     bilancioGiorno.value = entry ? Number(entry.bilancio) : 0
 
-    // Operazioni per giorno e bilanci
-    const mappa = {}
-    for (const operazione of resOperazioni.data) {
-      const giorno = operazione.data.slice(0, 10)
-      if (!mappa[giorno]) {
-        mappa[giorno] = []
-      }
-      mappa[giorno].push(operazione)
-    }
-    const giorni = Object.entries(mappa)
-      .sort(([a], [b]) => b.localeCompare(a))
-      .map(([giorno, ops]) => {
-        const totale = ops.reduce((s, o) => s + Number(o.importo), 0)
-        return {
-          giorno,
-          ops,
-          totale,
-        }
-      })
-    operazioniPerGiorno.value = giorni
-
-    // Operazioni oggi
-    operazioniOggi.value = resOperazioni.data.filter((o) => o.data.startsWith(dateOggi))
+    tutteLeOperazioni.value = resOperazioni.data
   } catch (e) {
-    toast.error('Errore caricamento cassa: ' + (e.message || e))
+    toast.error(e.response?.data?.message || 'Errore caricamento cassa')
   } finally {
     loading.value = false
   }
@@ -94,7 +106,7 @@ async function creaCorrezione() {
     formCorr.value = { importo: '', causale: '' }
     await caricaDati()
   } catch (e) {
-    toast.error('Errore creazione operazione: ' + (e.response?.data?.message || e.message))
+    toast.error(e.response?.data?.message || 'Errore creazione operazione')
   }
   loadingCorr.value = false
   formCorr.value = { importo: '', causale: '' }
@@ -105,7 +117,7 @@ async function eliminaOperazione(id) {
     await apiClient.delete(`/api/operazione/${id}`)
     await caricaDati()
   } catch (e) {
-    toast.error('Errore eliminazione operazione: ' + (e.response?.data?.message || e.message))
+    toast.error(e.response?.data?.message || 'Errore eliminazione operazione')
   }
 }
 
@@ -113,7 +125,7 @@ onMounted(caricaDati)
 </script>
 
 <template>
-  <v-container class="py-10 px-6" fluid>
+  <div class="page-container py-10 px-6">
     <div class="text-center mb-8">
       <h1>Cassa</h1>
     </div>
@@ -237,15 +249,23 @@ onMounted(caricaDati)
       </v-col>
     </v-row>
 
-    <!-- Pulsante nuova correzione -->
-    <div v-if="!loading" class="d-flex justify-center mt-4 mb-2">
+    <!-- Pulsante nuova correzione e toggle -->
+    <div v-if="!loading" class="d-flex justify-center align-center mt-4 mb-2" style="gap: 2rem">
       <v-btn
         color="blue-darken-1"
         prepend-icon="mdi-pencil-plus"
+        variant="tonal"
         @click="dialogAggiungiCorrezione = true"
       >
         Crea correzione
       </v-btn>
+      <v-switch
+        v-model="mostraCostoZero"
+        color="primary"
+        label="Mostra operazioni a costo zero"
+        hide-details
+        class="flex-grow-0"
+      />
     </div>
     <br />
 
@@ -259,7 +279,7 @@ onMounted(caricaDati)
         Nessuna operazione registrata.
       </div>
 
-      <v-expansion-panels v-else v-model="panels" variant="accordion" multiple>
+      <v-expansion-panels v-else v-model="panels" elevation="0" multiple>
         <v-expansion-panel
           v-for="giornoObj in operazioniPerGiorno"
           :key="giornoObj.giorno"
@@ -309,7 +329,7 @@ onMounted(caricaDati)
                   <td class="text-center" style="width: 40px">
                     <v-btn
                       v-if="op.tipo === 'manuale'"
-                      variant="text"
+                      variant="tonal"
                       icon="mdi-delete"
                       size="xx-small"
                       color="red-lighten-1"
@@ -323,5 +343,5 @@ onMounted(caricaDati)
         </v-expansion-panel>
       </v-expansion-panels>
     </template>
-  </v-container>
+  </div>
 </template>

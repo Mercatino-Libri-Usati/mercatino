@@ -37,6 +37,16 @@
       >
         Apri file da stampare
       </v-btn>
+
+      <v-btn
+        color="primary"
+        size="large"
+        prepend-icon="mdi-format-list-bulleted"
+        class="ml-4"
+        :to="{ path: '/ricevute', query: { numero: props.numero, tipo: props.tipo } }"
+      >
+        Visualizza in Ricevute
+      </v-btn>
     </div>
   </div>
 </template>

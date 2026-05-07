@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GestisceRicevute;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Ritiro extends Model
 {
-    protected $table = 'ritiron';
+    use GestisceRicevute;
 
-    protected $primaryKey = 'ID';
+    protected $table = 'ritiri';
+
+    protected $primaryKey = 'id';
 
     public $timestamps = false;
 
@@ -19,10 +23,10 @@ class Ritiro extends Model
     public static function show(): Builder
     {
         return self::select(
-            'ID as id',
+            'id',
             'data as data',
             'numero_ritiro as numero',
-            \Illuminate\Support\Facades\DB::raw("'Ritiro' as tipo"),
+            DB::raw("'Ritiro' as tipo"),
             'id_utente',
             'url_pdf'
         );
@@ -30,15 +34,15 @@ class Ritiro extends Model
 
     public static function getLibri(int $idRitiro): Collection
     {
-        $libri = \App\Models\Libri::where('id_ritiro', $idRitiro)
-            ->join('catalogo', 'libron.id_libro', '=', 'catalogo.ID')
+        $libri = Libri::where('id_ritiro', $idRitiro)
+            ->join('catalogo', 'libri.id_catalogo', '=', 'catalogo.ID')
             ->select(
-                'libron.id',
-                'libron.numero_libro',
+                'libri.id',
+                'libri.numero_libro',
                 'catalogo.titolo',
                 'catalogo.ISBN as isbn',
-                'libron.prezzo as prezzo_originale',
-                'libron.id_ritiro',
+                'libri.prezzo as prezzo_originale',
+                'libri.id_ritiro',
             )
             ->get();
 
@@ -57,7 +61,7 @@ class Ritiro extends Model
     }
 
     /**
-     * Restituisce i dettagli completi di una ritiro.
+     * Restituisce i dettagli completi di un ritiro.
      */
     public static function getMetadati(int $id): ?array
     {
@@ -67,11 +71,11 @@ class Ritiro extends Model
             return null;
         }
 
-        $user = User::where('ID_utenti', $ritiro->id_utente)->first();
+        $user = Credenziali::where('id_utente', $ritiro->id_utente)->first();
 
         return [
             'utente_id' => $ritiro->id_utente,
-            'utente_nominativo' => $user ? $user->getNomeCognome() : 'N/A',
+            'utente_nominativo' => $user?->getNomeCognome() ?? 'N/A',
             'numero_ritiro' => $ritiro->numero,
             'pdf_url' => $ritiro->url_pdf,
         ];

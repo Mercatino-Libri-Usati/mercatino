@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,7 +30,7 @@ class ExtendTokenExpiration
                 if (is_array($tokenValue)) {
                     $tokenValue = reset($tokenValue);
                 }
-                if ($response instanceof \Illuminate\Http\Response || $response instanceof \Illuminate\Http\JsonResponse) {
+                if ($response instanceof \Illuminate\Http\Response || $response instanceof JsonResponse) {
                     $response->withCookie(cookie('auth_token', $tokenValue, 60));
                 }
             }

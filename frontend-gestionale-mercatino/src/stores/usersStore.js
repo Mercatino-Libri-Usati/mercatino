@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { apiClient } from '@/apiConfig'
+import { toast } from '@/toast'
 
 export const useUserStore = defineStore('userStore', {
   state: () => ({
@@ -51,17 +52,9 @@ export const useUserStore = defineStore('userStore', {
         return true
       } catch (err) {
         console.error(err)
-        alert('Errore durante il salvataggio')
+        toast.error(err.response?.data?.message || 'Errore durante il salvataggio')
         return false
       }
-    },
-
-    addUser() {
-      alert('Funzione per aggiungere utente da implementare')
-    },
-
-    viewReceipts(utente) {
-      alert(`Visualizzazione ricevute per: ${utente.nome}`)
     },
   },
 })

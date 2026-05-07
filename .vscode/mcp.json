@@ -4,6 +4,10 @@
       "type": "stdio",
       "command": "php",
       "args": ["backend-api/artisan", "boost:mcp"]
+    },
+    "primevue": {
+      "command": "npx",
+      "args": ["-y", "@primevue/mcp"]
     }
   },
   "inputs": []

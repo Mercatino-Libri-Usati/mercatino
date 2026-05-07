@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted, defineAsyncComponent } from 'vue'
+import { onMounted, defineAsyncComponent, ref } from 'vue'
 import { useCatalogoStore } from '@/stores/catalogoStore'
+import { apiClient } from '@/apiConfig'
 import { toast } from '@/toast.js'
 const RicercaLibro = defineAsyncComponent(() => import('@/components/RicercaLibro.vue'))
 const LibroCard = defineAsyncComponent(() => import('@/components/LibroCard.vue'))
@@ -8,23 +9,45 @@ const LibroCard = defineAsyncComponent(() => import('@/components/LibroCard.vue'
 const catalogoStore = useCatalogoStore()
 const getChipColor = catalogoStore.getChipColorFn
 
-// Modifica prezzo libro
-const modificaPrezzo = async (libro) => {
-  const input = prompt(`Nuovo prezzo per "${libro.titolo}"`, libro.prezzo)
-  if (input === null) return
+const dialogPrezzo = ref(false)
+const libroDaModificare = ref(null)
+const inputPrezzo = ref('')
+const loadingPrezzo = ref(false)
 
-  // Accetta sia virgola che punto come separatore decimale
-  const prezzo = parseFloat(input.replace(',', '.'))
-  if (isNaN(prezzo)) {
+const openModificaPrezzo = (libro) => {
+  libroDaModificare.value = libro
+  inputPrezzo.value = libro.prezzo
+  dialogPrezzo.value = true
+}
+
+const salvaNuovoPrezzo = async () => {
+  if (!libroDaModificare.value) return
+
+  const prezzoNum = parseFloat(String(inputPrezzo.value).replace(',', '.'))
+  if (isNaN(prezzoNum)) {
     toast.error('Prezzo non valido')
     return
   }
 
+  loadingPrezzo.value = true
+  const id_catalogo = libroDaModificare.value.id_catalogo
   try {
-    await catalogoStore.updatePrezzo(libro.id_catalogo, prezzo)
+    await apiClient.patch(`/api/catalogo/${id_catalogo}/prezzo`, { prezzo: prezzoNum })
+
+    // Aggiornamento dello store manuale (semplificato)
+    const updateLocally = (arr) => {
+      const target = arr.find((l) => l.id_catalogo === id_catalogo)
+      if (target) target.prezzo = prezzoNum
+    }
+    updateLocally(catalogoStore.catalogo)
+    updateLocally(catalogoStore.libriFiltrati)
+
     toast.success('Prezzo aggiornato!')
+    dialogPrezzo.value = false
   } catch (e) {
-    toast.error(e.message || 'Errore')
+    toast.error(e.response?.data?.message || 'Errore aggiornamento prezzo')
+  } finally {
+    loadingPrezzo.value = false
   }
 }
 
@@ -34,41 +57,69 @@ onMounted(async () => {
 </script>
 
 <template>
-  <h1 class="text-center mb-8 mt-4">Catalogo</h1>
+  <div class="page-container">
+    <h1 class="text-center mb-8 mt-4">Catalogo</h1>
 
-  <div class="catalogo">
-    <!-- Error -->
-    <p v-if="catalogoStore.error" class="status error">{{ catalogoStore.error }}</p>
+    <div class="catalogo">
+      <!-- Error -->
+      <p v-if="catalogoStore.error" class="status error">{{ catalogoStore.error }}</p>
 
-    <!-- Loading -->
-    <div v-if="catalogoStore.loading" class="loading-wrapper">
-      <div class="spinner" />
-      <p class="loading-text">Caricamento catalogo...</p>
+      <!-- Loading -->
+      <div v-if="catalogoStore.loading" class="loading-wrapper">
+        <div class="spinner" />
+        <p class="loading-text">Caricamento catalogo...</p>
+      </div>
+
+      <template v-else>
+        <!-- Ricerca -->
+        <ricerca-libro />
+
+        <!-- Nessun risultato -->
+        <div
+          v-if="catalogoStore.catalogo.length > 0 && catalogoStore.getLibriDaMostrare.length === 0"
+          class="no-results"
+        >
+          Nessun libro trovato per la tua ricerca.
+        </div>
+
+        <!-- Lista libri -->
+        <div v-else class="lista">
+          <libro-card
+            v-for="libro in catalogoStore.getLibriDaMostrare"
+            :key="libro.id_catalogo"
+            :libro="libro"
+            :get-chip-color="getChipColor"
+            @modifica-prezzo="openModificaPrezzo"
+          />
+        </div>
+      </template>
     </div>
 
-    <template v-else>
-      <!-- Ricerca -->
-      <ricerca-libro />
-
-      <!-- Nessun risultato -->
-      <div
-        v-if="catalogoStore.catalogo.length > 0 && catalogoStore.getLibriDaMostrare.length === 0"
-        class="no-results"
-      >
-        Nessun libro trovato per la tua ricerca.
-      </div>
-
-      <!-- Lista libri -->
-      <div v-else class="lista">
-        <libro-card
-          v-for="libro in catalogoStore.getLibriDaMostrare"
-          :key="libro.id_catalogo"
-          :libro="libro"
-          :get-chip-color="getChipColor"
-          @modifica-prezzo="modificaPrezzo"
-        />
-      </div>
-    </template>
+    <!-- Modale Modifica Prezzo -->
+    <v-dialog v-model="dialogPrezzo" max-width="400px">
+      <v-card>
+        <v-card-title class="text-h6"> Modifica Prezzo </v-card-title>
+        <v-card-text>
+          <div v-if="libroDaModificare" class="mb-4">
+            Stai modificando il prezzo per:<br />
+            <strong>{{ libroDaModificare.titolo }}</strong>
+          </div>
+          <v-text-field
+            v-model="inputPrezzo"
+            label="Nuovo Prezzo (€)"
+            type="number"
+            step="0.10"
+            variant="outlined"
+            @keyup.enter="salvaNuovoPrezzo"
+          ></v-text-field>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="error" text @click="dialogPrezzo = false">Annulla</v-btn>
+          <v-btn color="primary" :loading="loadingPrezzo" @click="salvaNuovoPrezzo">Salva</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 

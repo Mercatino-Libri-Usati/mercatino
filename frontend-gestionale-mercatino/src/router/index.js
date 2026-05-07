@@ -68,6 +68,11 @@ const routes = [
     component: () => import('@/views/LoginView.vue'),
   },
   {
+    path: '/tutorial',
+    name: 'tutorial',
+    component: () => import('@/views/TutorialView.vue'),
+  },
+  {
     path: '/registrazione',
     name: 'registrazione',
     component: () => import('@/views/RegisterView.vue'),
@@ -81,6 +86,11 @@ const routes = [
     path: '/imposta-password',
     name: 'imposta-password',
     component: () => import('@/views/ImpostaPasswordView.vue'),
+  },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('@/views/AdminView.vue'),
   },
 ]
 

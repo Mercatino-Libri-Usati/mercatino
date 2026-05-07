@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\LibroHelper;
+use App\Models\Libri;
 use App\Models\Operazione;
 use App\Models\Vendita;
 use App\Services\PdfRicevuteService;
@@ -11,18 +12,27 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @group Vendita
+ */
 class VenditaController extends Controller
 {
     /**
-     * Restituisce i libri di una ricevuta di vendita.
-     * metadati=true per i dettagli della vendita (utente, data, ecc), libri=true per i libri associati
-     * GET /api/ricevute/vendita/{id}?metadati=true&libri=true
+     * Dettaglio vendita
+     *
+     * Restituisce i dati della ricevuta di vendita con i libri associati.
+     *
+     * @urlParam id int required L'ID della prenotazione da visualizzare. No-example
+     *
+     * @queryParam metadati boolean Dati della ricevuta da includere. No-example
+     * @queryParam libri boolean Libri della ricevuta da includere. No-example
+     *
+     * @responseField id ID della ricevuta.
+     * @responseField numero_vendita Numero progressivo della vendita.
+     * @responseField libri Elenco dei libri della vendita.
      */
     public function showVendita(Request $request, int $id): JsonResponse
     {
-        if ($id <= 0) {
-            return $this->errorResponse('ID non valido', 422);
-        }
 
         $metadati = $request->boolean('metadati', true);
         $libri = $request->boolean('libri', true);
@@ -31,24 +41,25 @@ class VenditaController extends Controller
             return $this->errorResponse('Nessun parametro valido fornito', 422);
         }
 
-        if (! Vendita::where('ID', $id)->exists()) {
+        $risposta = Vendita::dettaglioRicevuta($id, $metadati, $libri);
+        if (is_null($risposta)) {
             return $this->notFoundResponse("Vendita $id non trovata");
-        }
-
-        $risposta = [];
-        if ($metadati) {
-            $risposta['metadati'] = Vendita::getMetadati($id);
-        }
-        if ($libri) {
-            $risposta['libri'] = Vendita::getLibri($id);
         }
 
         return $this->successResponse($risposta);
     }
 
     /**
-     * Inserisce una ricevuta di vendita con più libri.
-     * POST /api/ricevute/vendita
+     * Nuova vendita
+     *
+     * Crea una nuova ricevuta di vendita con uno o più libri.
+     *
+     * @bodyParam userid integer required L'ID dell'utente che effettua la vendita. No-example
+     * @bodyParam libri array required Elenco degli ID dei libri da vendere. No-example
+     *
+     * @responseField id_vendita ID della ricevuta creata.
+     * @responseField numero_vendita Numero progressivo della ricevuta.
+     * @responseField pdf_url URL del PDF generato.
      */
     public function addVendita(Request $request): JsonResponse
     {
@@ -68,26 +79,32 @@ class VenditaController extends Controller
     }
 
     /**
-     * Elabora l'inserimento della vendita in una transazione.
+     * Elabora la vendita in transazione.
      */
     private function processVendita(int $userId, array $elencoLibri): JsonResponse
     {
-        DB::beginTransaction();
-
         try {
-            $numeroVendita = $this->getNextProgressivo('venditan', 'numero_vendita');
+            $vendita = DB::transaction(function () use ($userId, $elencoLibri): array {
+                $numeroVendita = $this->getNextProgressivo('vendite', 'numero_vendita');
 
-            $idVendita = DB::table('venditan')->insertGetId([
-                'id_utente' => $userId,
-                'data' => now(),
-                'numero_vendita' => $numeroVendita,
-            ]);
+                $idVendita = Vendita::create([
+                    'id_utente' => $userId,
+                    'numero_vendita' => $numeroVendita,
+                    'data' => now(),
+                ])->id;
 
-            foreach ($elencoLibri as $libroId) {
-                $this->assegnaLibroAVendita($libroId, $idVendita, $userId);
-            }
+                foreach ($elencoLibri as $libroId) {
+                    $this->assegnaLibroAVendita($libroId, $idVendita, $userId);
+                }
 
-            DB::commit();
+                return [
+                    'id_vendita' => $idVendita,
+                    'numero_vendita' => $numeroVendita,
+                ];
+            });
+
+            $idVendita = $vendita['id_vendita'];
+            $numeroVendita = $vendita['numero_vendita'];
 
             $libriCompleti = Vendita::getLibri($idVendita);
 
@@ -102,14 +119,10 @@ class VenditaController extends Controller
             );
 
             // Aggiungi il link al PDF nel db
-            DB::table('venditan')->where('id', $idVendita)->update([
-                'url_pdf' => $pdfUrl,
-            ]);
+            Vendita::aggiornaUrlPdf($idVendita, $pdfUrl);
 
             return $this->createdResponse(['id_vendita' => $idVendita, 'numero_vendita' => $numeroVendita, 'pdf_url' => $pdfUrl]);
         } catch (\Exception $e) {
-            DB::rollBack();
-
             if ($e->getCode() === Response::HTTP_NOT_FOUND) {
                 return $this->notFoundResponse($e->getMessage());
             }
@@ -119,12 +132,12 @@ class VenditaController extends Controller
     }
 
     /**
-     * Verifica e assegna un libro alla vendita.
+     * Assegna libro alla vendita.
      */
     private function assegnaLibroAVendita(int $libroId, int $idVendita, int $userId): void
     {
-        $libro = DB::table('libron')
-            ->where('id', $libroId)
+        $libro = Libri::query()
+            ->whereKey($libroId)
             ->lockForUpdate()
             ->first();
 
@@ -134,13 +147,11 @@ class VenditaController extends Controller
 
         if (! LibroHelper::isVendibile($libroId, $userId)) {
             throw new \Exception(
-                "Libro con numero {$libroId} non vendibile a questo utente (già venduto/restituito o prenotato da altro utente)"
+                "Il libro numero {$libro->numero_libro} è già stato veduto, restrituito o prenotato da un altro utente",
             );
         }
 
-        DB::table('libron')
-            ->where('id', $libro->id)
-            ->update(['id_vendita' => $idVendita]);
+        $libro->update(['id_vendita' => $idVendita]);
 
         Operazione::aggiungi([
             'tipo' => 'vendita',

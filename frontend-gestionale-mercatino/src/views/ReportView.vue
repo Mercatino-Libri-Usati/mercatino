@@ -1,112 +1,78 @@
-<template class="text-center">
-  <h1 class="text-center mb-8">Report</h1>
+<template>
+  <br />
+  <v-card class="page-container" flat title="Report">
+    <template v-slot:text>
+      <v-text-field
+        v-model="ricerca"
+        label="Ricerca"
+        prepend-inner-icon="mdi-magnify"
+        variant="outlined"
+        hide-details
+        single-line
+      ></v-text-field>
+    </template>
 
-  <div v-if="operazioni.length" class="utenti-container">
-    <!-- filtro per cercare per numero libro -->
-    <v-text-field
-      v-model="ricerca"
-      prepend-inner-icon="mdi-magnify"
-      label="Cerca per numero libro ..."
-      variant="outlined"
-      class="text-centered mr-10 ml-10"
-    />
-
-    <!-- tabella visualizzazione report -->
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Tipo</th>
-          <th>Data</th>
-          <th>Numero Libro</th>
-          <th>Operatore</th>
-          <th>Importo</th>
-          <th>Causale</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr :class="op.tipo" v-for="op in logFiltrati" :key="op.id">
-          <td>
-            <span class="view-span">{{ op.id }}</span>
-          </td>
-          <td>
-            <span class="view-span">{{ op.tipo.charAt(0).toUpperCase() + op.tipo.slice(1) }}</span>
-          </td>
-          <td>
-            <span class="view-span">{{ formatDate(op.data) }}</span>
-          </td>
-          <td>
-            <span class="view-span">{{ op.libro }}</span>
-          </td>
-          <td>
-            <span class="view-span">{{ op.operatore }}</span>
-          </td>
-          <td>
-            <span class="view-span">{{ op.importo }}</span>
-          </td>
-          <td>
-            <span class="view-span">{{ op.causale === null ? '--' : op.causale }}</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div v-else class="text-center mt-4">Caricamento...</div>
+    <v-data-table
+      :headers="headers"
+      :items="operazioni"
+      :loading="loading"
+      :search="ricerca"
+      :items-per-page="100"
+      :filter-keys="['libro', 'operatore', 'causale', 'tipo', 'data']"
+      class="report-table"
+      :row-props="rowProps"
+    >
+      <template #[`item.data`]="{ item }">
+        {{ new Date(item.data).toLocaleDateString('it-IT') }}
+      </template>
+    </v-data-table>
+  </v-card>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { apiClient } from '@/apiConfig'
 
 const operazioni = ref([])
 const ricerca = ref('')
+const loading = ref(false)
+
+const headers = [
+  { title: 'ID', key: 'id' },
+  { title: 'Tipo', key: 'tipo' },
+  { title: 'Data', key: 'data' },
+  { title: 'Numero Libro', key: 'libro' },
+  { title: 'Operatore', key: 'operatore' },
+  { title: 'Importo', key: 'importo' },
+  { title: 'Causale', key: 'causale' },
+]
 
 // Carica i dati dal backend
 onMounted(async () => {
-  const response = await apiClient.get('/api/operazioni') //mi prendo dal backend le operazioni
-  operazioni.value = response.data
+  loading.value = true
+  try {
+    const response = await apiClient.get('/api/operazioni')
+    operazioni.value = response.data
+  } finally {
+    loading.value = false
+  }
 })
 
-// computed per filtrare le operazioni in base al numero libro
-const logFiltrati = computed(() => {
-  const q = ricerca.value?.toString().toLowerCase() || ''
-  return operazioni.value.filter((op) => !q || op.libro.toString().toLowerCase().includes(q))
+const rowProps = ({ item }) => ({
+  class: item?.tipo,
 })
-
-// funzione per formattare la data in gg/mm/aaaa
-const formatDate = (data) => {
-  if (!data) return '--'
-  const d = new Date(data)
-  return d.toLocaleDateString('it-IT')
-}
 </script>
 
 <style scoped>
-table {
-  width: 95%;
-  margin: 20px auto 10rem auto;
-  margin-bottom: 10rem;
-  border-collapse: collapse;
-}
-th,
-td {
-  padding: 12px;
-  border-bottom: 1px solid #ddd;
-  text-align: left;
-  overflow: hidden;
+.report-table :deep(tr.ritiro) {
+  background-color: rgba(0, 128, 0, 0.1);
 }
 
-.ritiro {
-  background-color: rgba(0, 128, 0, 0.1); /* verde trasparente */
+.report-table :deep(tr.restituzione) {
+  background-color: rgba(255, 215, 0, 0.1);
 }
-.restituzione {
-  background-color: rgba(255, 215, 0, 0.1); /* oro trasparente */
-}
-.prenotazione {
-  background-color: rgba(128, 0, 128, 0.1); /* viola trasparente */
-}
-.vendita {
-  background-color: rgba(0, 0, 255, 0.1); /* blu trasparente */
+
+.report-table :deep(tr.vendita) {
+  background-color: rgba(0, 42, 255, 0.1);
 }
 </style>

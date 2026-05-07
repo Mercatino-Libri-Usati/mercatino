@@ -2,19 +2,43 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Catalogo;
+use App\Models\Credenziali;
+use App\Models\Libri;
+use App\Models\Prenotazione;
 use App\Models\Restituzione;
 use App\Models\Ritiro;
-use App\Models\User;
+use App\Models\Utente;
 use App\Models\Vendita;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * @group Ricevute
+ */
 class RicevuteController extends Controller
 {
     /**
-     * Display a listing of receipts.
-     * GET /api/ricevute
+     * Elenco ricevute
+     *
+     * Mostra l'elenco delle ricevute registrate nel sistema, con eventuale filtraggio.
+     *
+     * @queryParam numero string Numero progressivo della ricevuta. No-example
+     * @queryParam utente string Nome o cognome dell'utente associato alla ricevuta. No-example
+     * @queryParam libro string Numero del libro associato alla ricevuta. No-example
+     * @queryParam isbn string ISBN del libro associato alla ricevuta. No-example
+     * @queryParam tipo string[] Tipo di ricevuta (Vendita, Ritiro, Restituzione). No-example
+     * @queryParam date_from string Data di inizio per il filtro (formato YYYY-MM-DD). No-example
+     * @queryParam date_to string Data di fine per il filtro (formato YYYY-MM-DD). No-example
+     * @queryParam user_id int ID dell'utente associato alla ricevuta. No-example
+     *
+     * @responseField id ID della ricevuta.
+     * @responseField data Data di creazione della ricevuta.
+     * @responseField numero Numero progressivo della ricevuta.
+     * @responseField tipo Tipo di ricevuta (Vendita, Ritiro, Restituzione).
+     * @responseField id_utente ID dell'utente associato alla ricevuta.
+     * @responseField pdf_url URL del PDF della ricevuta.
+     * @responseField nominativo Nome e cognome dell'utente associato alla ricevuta.
      */
     public function index(Request $request): JsonResponse
     {
@@ -30,11 +54,11 @@ class RicevuteController extends Controller
         $userId = $request->input('user_id');
 
         // Unione delle query
-        $query = Ritiro::show()->unionAll(Vendita::show())
+        $query = Ritiro::show()->unionAll(Prenotazione::show())->unionAll(Vendita::show())
             ->unionAll(Restituzione::show());
 
         // Applicazione filtri
-        $unionQuery = DB::query()->fromSub($query, 'ricevute_unite');
+        $unionQuery = Ritiro::query()->fromSub($query, 'ricevute_unite');
 
         if ($numero) {
             $unionQuery->where('numero', $numero);
@@ -57,22 +81,20 @@ class RicevuteController extends Controller
         }
 
         if ($utente) {
-            $idUtente = DB::table('utenti')
-                ->where(DB::raw("CONCAT(nome, ' ', cognome)"), 'like', "%$utente%")
-                ->pluck('ID')
+            $idUtente = Utente::query()
+                ->whereRaw("CONCAT(nome, ' ', cognome) like ?", ["%{$utente}%"])
+                ->pluck('id')
                 ->all();
 
             $unionQuery->whereIn('id_utente', $idUtente);
         }
 
         if ($isbn) {
-            $idCatalogo = DB::table('catalogo')
-                ->where('ISBN', 'like', "%$isbn%")
-                ->pluck('ID');
+            $idCatalogo = Catalogo::where('ISBN', 'like', "%$isbn%")->pluck('ID')->all();
 
-            $idRicevute = DB::table('libron')
-                ->whereIn('id_libro', $idCatalogo)
-                ->selectRaw('id_ritiro, id_prenotazione, id_vendita, id_restituzione')
+            $idRicevute = Libri::query()
+                ->whereIn('id_catalogo', $idCatalogo)
+                ->select('id_ritiro', 'id_prenotazione', 'id_vendita', 'id_restituzione')
                 ->get()
                 ->flatMap(function ($row) {
                     return array_filter([
@@ -92,9 +114,9 @@ class RicevuteController extends Controller
         if ($libro) {
             $libro = (array) $libro;
 
-            $idRicevute = DB::table('libron')
+            $idRicevute = Libri::query()
                 ->whereIn('numero_libro', $libro)
-                ->selectRaw('id_ritiro, id_prenotazione, id_vendita, id_restituzione')
+                ->select('id_ritiro', 'id_prenotazione', 'id_vendita', 'id_restituzione')
                 ->get()
                 ->flatMap(function ($row) {
                     return array_filter([
@@ -117,7 +139,7 @@ class RicevuteController extends Controller
         $ricevute = $unionQuery->get();
         // Recupera tutti gli utenti che hanno ricevute in un'unica query
         $userIds = $ricevute->pluck('id_utente')->unique()->filter()->all();
-        $users = User::whereIn('ID_utenti', $userIds)->get()->keyBy('ID_utenti');
+        $users = Credenziali::whereIn('id_utente', $userIds)->get()->keyBy('id_utente');
         $ricevute->transform(function ($ricevuta) use ($users) {
             $user = $users->get($ricevuta->id_utente);
             $ricevuta->nominativo = $user ? $user->getNomeCognome() : 'Sconosciuto';

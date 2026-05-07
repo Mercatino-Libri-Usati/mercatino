@@ -32,7 +32,7 @@ Campi:
 
 ---
 
-### 2. `users`
+### 2. `credenziali`
 
 Tabella **di autenticazione reale** (Sanctum lavora qui).
 
@@ -49,7 +49,7 @@ Campi:
 
 ---
 
-### 3. `standby_users`
+### 3. `standby_credenziali`
 
 Usata **solo durante onboarding / verifica email**.
 
@@ -94,12 +94,12 @@ Azioni backend:
 
 1. Validazione (email unica, username unico)
 2. Creazione record in `utenti`
-3. Creazione record in `standby_users`
+3. Creazione record in `standby_credenziali`
 
 
 # Step 2. Generazione token unico
 
-1. Generazione di un token casuale in cod standby_users, salvare sha in db standby_users.cod
+1. Generazione di un token casuale in cod standby_credenziali, salvare sha in db standby_credenziali.cod
 2. Invio email con link di verifica:
 
 ```
@@ -132,10 +132,10 @@ Payload:
 Azioni backend:
 
 1. Verifica token + scadenza
-2. Creazione record in `users`
+2. Creazione record in `credenziali`
 
-   * password cryptata nel campo `users.password`
-3. Eliminazione record `standby_users`
+   * password cryptata nel campo `credenziali.password`
+3. Eliminazione record `standby_credenziali`
 
 ---
 
@@ -184,7 +184,7 @@ Endpoint:
 POST /api/login
 ```
 
-Se user è ancora in `standby_users` → ritorna al punto "3 – Completamento registrazione"
+Se user è ancora in `standby_credenziali` → ritorna al punto "3 – Completamento registrazione"
 
 Azioni:
 

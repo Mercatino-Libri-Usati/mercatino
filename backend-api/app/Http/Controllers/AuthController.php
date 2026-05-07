@@ -2,13 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\Credenziali;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * @group Registrazione
+ */
 class AuthController extends Controller
 {
-    public function login(Request $request): \Illuminate\Http\JsonResponse
+    /**
+     * Login utente
+     *
+     * Autentica un utente nel sistema e restituisce i dati della sessione.
+     *
+     * @bodyParam login string required La mail o il nickname dell'utente. No-example
+     * @bodyParam password string required La password dell'utente. No-example
+     *
+     * @responseField userid L'id dell'utente.
+     * @responseField privilegio Il livello di privilegio.
+     * @responseField nome_cognome Nome e cognome dell'utente.
+     */
+    public function login(Request $request): JsonResponse
     {
         $request->validate([
             'login' => 'required',
@@ -20,11 +36,11 @@ class AuthController extends Controller
         $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'mail' : 'nickname';
 
         if ($field === 'mail') {
-            $user = User::whereHas('utente', function ($query) use ($login) {
+            $user = Credenziali::whereHas('utente', function ($query) use ($login) {
                 $query->where('mail', $login);
             })->first();
         } else {
-            $user = User::where('nickname', $login)->first();
+            $user = Credenziali::where('nickname', $login)->first();
         }
 
         // Use MD5 check as per existing database state
@@ -42,13 +58,20 @@ class AuthController extends Controller
         $cookie = cookie('auth_token', $token, 60, null, null, null, true);
 
         return response()->json([
-            'userid' => $user->utente->ID,
+            'userid' => $user->utente->id,
             'privilegio' => $user->privilegi,
             'nome_cognome' => $user->utente->nome.' '.$user->utente->cognome,
         ])->withCookie($cookie);
     }
 
-    public function logout(Request $request): \Illuminate\Http\JsonResponse
+    /**
+     * Logout utente
+     *
+     * Effettua il logout dell'utente revoca il token di accesso.
+     *
+     * @responseField message The status of this API (`up` or `down`).
+     */
+    public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
         if ($user) {
@@ -57,5 +80,25 @@ class AuthController extends Controller
         $cookie = cookie()->forget('auth_token');
 
         return response()->json(['message' => 'Logout effettuato con successo.'])->withCookie($cookie);
+    }
+
+    /**
+     * Dati sessione corrente
+     *
+     * Restituisce le informazioni essenziali dell'utente attualmente autenticato.
+     *
+     * @responseField userid L'ID dell'utente.
+     * @responseField privilegio Il livello di privilegio.
+     * @responseField nome_cognome Nome e cognome.
+     */
+    public function whoami(Request $request): JsonResponse
+    {
+        $user = $request->user()->load('utente');
+
+        return response()->json([
+            'userid' => $user->utente->id,
+            'privilegio' => $user->privilegi,
+            'nome_cognome' => $user->utente->nome.' '.$user->utente->cognome,
+        ]);
     }
 }

@@ -33,9 +33,15 @@
       <RouterLink to="/ricevute">Ricevute</RouterLink>
       <RouterLink to="/catalogo">Catalogo</RouterLink>
       <RouterLink to="/report">Report</RouterLink>
+      <div class="icon-wrapper">
+        <RouterLink to="/admin">
+          <Icon icon="mdi:account-cog" width="40" />
+        </RouterLink>
+        <span class="icon-text">Admin</span>
+      </div>
     </div>
 
-    <div class="utente">
+    <div class="utente" v-if="authStore.isAuthenticated">
       <v-text-field
         :model-value="nome_cognome"
         readonly
@@ -57,7 +63,7 @@ import { computed } from 'vue'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const nome_cognome = computed(() => authStore.user?.nome_cognome || 'Utente')
+const nome_cognome = computed(() => authStore.user?.nome_cognome)
 
 const logout = async () => {
   await authStore.logout()
@@ -140,6 +146,7 @@ const logout = async () => {
   gap: 15px;
   width: 10rem;
 }
+
 .utente-text {
   justify-content: center;
 }

@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Models\Adozione;
 use App\Models\Catalogo;
 use App\Models\Libri;
+use App\Models\Prenotazione;
 
 class LibroHelper
 {
@@ -52,6 +53,7 @@ class LibroHelper
             return true;
         }
 
-        return $libro->id_utente === $userId;
+        return Prenotazione::where('id', $libro->id_prenotazione)->first()->id_utente === $userId;
+
     }
 }

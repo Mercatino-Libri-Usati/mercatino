@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\User;
+use App\Mail\RicevutaCreata;
+use App\Models\Utente;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class PdfRicevuteService
@@ -16,19 +18,25 @@ class PdfRicevuteService
      */
     public function generateAndSave($libri, int $numero_ritiro, string $data, int $id_utente, float $totale, string $tipo): string
     {
-        $filename = $tipo.'_'.$numero_ritiro.'.pdf';
-        $path = 'ricevute/'.$filename;
+        $utente = Utente::query()->find($id_utente);
+
+        $path = 'ricevute/'.$tipo.'_'.$numero_ritiro.'.pdf';
 
         $pdf = Pdf::loadView('pdf.ritiro', [
             'libri' => $libri,
             'numero' => $numero_ritiro,
             'data' => $data,
-            'nome_utente' => User::find($id_utente)->getNomeCognome()." (ID: $id_utente)",
+            'nome_utente' => $utente ? $utente->getNomeCognome()." (ID: $id_utente)" : "Utente sconosciuto (ID: $id_utente)",
             'totale' => $totale,
             'tipo' => $tipo,
         ]);
         $pdf->setPaper('A4', 'landscape');
         Storage::disk('public')->put($path, $pdf->output(), 'public');
+
+        // Invia la mail all'utente
+        if ($utente?->mail && env('APP_ENV') === 'production') {
+            Mail::to($utente->mail)->send(new RicevutaCreata($path));
+        }
 
         return route('ricevute.download', ['id' => $numero_ritiro, 'tipo' => $tipo]);
     }

@@ -69,7 +69,7 @@ watch(utenteSelezionato, () => {
 </script>
 
 <template>
-  <v-container class="restituzione-container py-10 px-12" fluid>
+  <v-container class="page-container py-10 px-12" fluid>
     <h1 class="text-center mb-8">Restituzione Libri</h1>
 
     <div v-if="!ricevutaCreata">

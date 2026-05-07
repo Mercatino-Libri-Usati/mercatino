@@ -16,6 +16,7 @@
     "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "Se non riesci a cliccare sul pulsante \":actionText\", copia e incolla l'URL seguente\nnel tuo browser:",
     "Invalid filename.": "Nome file non valido.",
     "Invalid JSON was returned from the route.": "JSON non valido è stato restituito dalla route.",
+    "length": "dimensione",
     "Location": "Posizione",
     "Login": "Accedi",
     "Logout": "Esci",
@@ -27,8 +28,9 @@
     "Please click the button below to verify your email address.": "Clicca sul pulsante qui sotto per verificare il tuo indirizzo email.",
     "Regards,": "Distinti saluti,",
     "Register": "Registrati",
-    "Reset Password": "Resetta la password",
+    "Reset Password": "Reimposta password",
     "Reset Password Notification": "Notifica di reset della password",
+    "Reset your password": "Resetta la tua password",
     "results": "risultati",
     "Server Error": "Errore server",
     "Service Unavailable": "Servizio non disponibile",
@@ -43,6 +45,7 @@
     "Too Many Requests": "Troppe richieste",
     "Unauthorized": "Non autorizzato",
     "Verify Email Address": "Verifica indirizzo email",
+    "Verify your email address": "Verifica il tuo indirizzo email",
     "Whoops!": "Ops!",
     "You are receiving this email because we received a password reset request for your account.": "Hai ricevuto questa email perché abbiamo ricevuto una richiesta di reset della password per il tuo account."
 }

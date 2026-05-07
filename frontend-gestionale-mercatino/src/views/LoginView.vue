@@ -1,53 +1,67 @@
 <template>
-  <div class="login-wrapper">
-    <div class="login-container">
-      <v-card class="login-card">
-        <v-card-title class="login-header">
-          <v-icon size="32" class="header-icon">mdi-shield-account</v-icon>
-          <h2>Accedi al Gestionale</h2>
-        </v-card-title>
+  <div class="login-wrapper d-flex align-center justify-center">
+    <v-card class="login-card elevation-10" width="100%" max-width="420" rounded="xl">
+      <v-card-title class="login-header d-flex flex-column align-center py-8 text-white">
+        <v-icon size="48" class="mb-2">mdi-shield-account</v-icon>
+        <h2 class="text-h5 font-weight-bold">Accedi al Gestionale</h2>
+      </v-card-title>
 
-        <v-card-text class="login-content">
-          <p class="welcome-text">Inserisci le tue credenziali per continuare</p>
+      <v-card-text class="pa-8">
+        <p class="text-center text-medium-emphasis mb-6">
+          Inserisci le tue credenziali per continuare
+        </p>
 
-          <v-form ref="form" @submit.prevent="handleLogin" class="login-form">
-            <v-text-field
-              v-model="username"
-              label="Username"
-              prepend-icon="mdi-account-circle"
-              placeholder="Il tuo username o la tua email"
-              class="mb-4 form-input"
-              :rules="[(v) => !!v || 'Username obbligatorio']"
-              outlined
-              dense
-              width="320"
-              autocomplete="login"
-            />
+        <v-form ref="form" @submit.prevent="handleLogin">
+          <v-text-field
+            v-model="username"
+            label="Email o Username"
+            prepend-inner-icon="mdi-account-circle"
+            placeholder="Il tuo username o la tua email"
+            variant="outlined"
+            class="mb-4"
+            :rules="[(v) => !!v || 'Campo obbligatorio']"
+            autocomplete="username"
+          />
 
-            <v-text-field
-              v-model="password"
-              :label="showPassword ? 'Password' : 'Password'"
-              :type="showPassword ? 'text' : 'password'"
-              prepend-icon="mdi-lock"
-              :append-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-              placeholder="La tua password"
-              class="mb-6 form-input"
-              :rules="[(v) => !!v || 'Password obbligatoria']"
-              @click:append="showPassword = !showPassword"
-              outlined
-              dense
-              autocomplete="current-password"
-            />
+          <v-text-field
+            v-model="password"
+            label="Password"
+            :type="showPassword ? 'text' : 'password'"
+            prepend-inner-icon="mdi-lock"
+            :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+            placeholder="La tua password"
+            variant="outlined"
+            class="mb-2"
+            :rules="[(v) => !!v || 'Password obbligatoria']"
+            @click:append-inner="showPassword = !showPassword"
+            autocomplete="current-password"
+          />
 
-            <v-btn type="submit" color="primary" block class="login-btn" :loading="isLoading">
-              <v-icon left>mdi-login</v-icon>
-              Accedi
-            </v-btn>
-          </v-form>
-          <p v-if="error" class="status error">{{ error }}</p>
-        </v-card-text>
-      </v-card>
-    </div>
+          <div class="text-center mb-6">
+            <router-link
+              :to="{ name: 'richiedi-link-password' }"
+              class="text-primary text-decoration-none font-weight-medium"
+            >
+              Non hai o non ricordi la password?
+            </router-link>
+          </div>
+
+          <v-btn
+            type="submit"
+            color="primary"
+            block
+            size="large"
+            rounded="lg"
+            class="login-btn"
+            :loading="isLoading"
+          >
+            <v-icon start>mdi-login</v-icon>
+            Accedi
+          </v-btn>
+        </v-form>
+        <p v-if="error" class="text-center text-error mt-4 font-weight-medium">{{ error }}</p>
+      </v-card-text>
+    </v-card>
   </div>
 </template>
 
@@ -73,7 +87,11 @@ const handleLogin = async () => {
   const ok = await authStore.login(username.value, password.value)
   isLoading.value = false
   if (ok) {
-    // Se c'è un redirect nella query, vai lì, altrimenti dashboard
+    if (authStore.user?.privilegio === 1) {
+      error.value = 'Il tuo account non ha i permessi per accedere al gestionale.'
+      await authStore.logout()
+      return
+    }
     const redirect = router.currentRoute.value.query.redirect
     if (redirect) {
       router.push(redirect)
@@ -88,9 +106,8 @@ const handleLogin = async () => {
 
 <style scoped>
 .login-wrapper {
-  background: linear-gradient(135deg, #667eea 0%, #1241ff 50%, #0e051c 100%);
+  min-height: 100vh;
   position: relative;
-  overflow: hidden;
 }
 
 .login-wrapper::before {
@@ -106,78 +123,24 @@ const handleLogin = async () => {
   pointer-events: none;
 }
 
-.login-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  position: relative;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 420px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.95);
-}
-
 .login-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
   background: linear-gradient(135deg, #667eea 0%, #06175d 100%);
-  color: white;
-  padding: 32px 24px 24px;
-  border-radius: 20px 20px 0 0;
-}
-
-.login-content {
-  padding: 2.5rem 2rem; /* padding maggiore nel form */
-}
-
-.welcome-text {
-  text-align: center;
-  color: #666;
-  margin-bottom: 32px;
-  font-size: 16px;
-}
-
-.login-form .form-input {
-  width: 100%; /* tutti i campi uguali */
-  padding: 0.5rem 1rem; /* padding interno maggiore */
 }
 
 .login-btn {
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  border-radius: 12px;
   background: linear-gradient(135deg, #667eea 0%, #06175d 100%);
+  letter-spacing: 1px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .login-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(56, 82, 195, 0.4);
+  box-shadow: 0 8px 20px rgba(6, 23, 93, 0.4);
 }
 
-.status {
-  text-align: center;
-  margin-top: 16px;
-  font-size: 14px;
-}
-
-.error {
-  color: #e53935;
-}
-
-.status {
-  text-align: center;
-  margin-top: 16px;
-  font-size: 14px;
-}
-
-.error {
-  color: #e53935;
+a:hover {
+  text-decoration: underline !important;
 }
 </style>

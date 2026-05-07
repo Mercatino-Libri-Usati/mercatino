@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex justify-center align-center" style="min-height: 100vh">
+  <div class="d-flex justify-center align-center page-container" style="min-height: 100vh">
     <v-card width="400" class="pa-6">
       <v-card-title class="text-center mb-6">Registrati</v-card-title>
 
@@ -43,8 +43,8 @@ const register = async () => {
   try {
     await apiClient.post('/api/registra', form.value)
     Router.push('/richiedi-link-password?email=' + encodeURIComponent(form.value.email))
-  } catch {
-    toast.error('Errore durante la registrazione')
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Errore durante la registrazione')
   } finally {
     loading.value = false
   }

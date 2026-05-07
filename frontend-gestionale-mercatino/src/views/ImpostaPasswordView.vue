@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex justify-center align-center" style="min-height: 100vh">
+  <div class="d-flex justify-center align-center page-container">
     <v-card width="400" class="pa-6">
       <v-card-title class="text-center mb-6">Imposta nuova password</v-card-title>
 
@@ -74,8 +74,11 @@ const requestLink = async () => {
     // Se qualcosa fallisce nel login automatico (es. no email) andiamo al login
     toast.success('Password impostata con successo. Esegui il login.')
     Router.push('/login')
-  } catch {
-    toast.error("Errore durante l'impostazione della password. Verifica che il link sia valido.")
+  } catch (err) {
+    toast.error(
+      err.response?.data?.message ||
+        "Errore durante l'impostazione della password. Verifica che il link sia valido.",
+    )
   } finally {
     loading.value = false
   }

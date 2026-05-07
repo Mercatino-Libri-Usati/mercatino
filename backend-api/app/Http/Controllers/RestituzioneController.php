@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Libri;
 use App\Models\Operazione;
 use App\Models\Restituzione;
 use App\Models\Ritiro;
@@ -9,19 +10,30 @@ use App\Services\PdfRicevuteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @group Restituzione
+ */
 class RestituzioneController extends Controller
 {
     /**
-     * Restituisce i libri di una ricevuta di restituzione.
-     * GET /api/ricevute/restituzione/{id}
+     * Dettaglio restituzione
+     *
+     * Restituisce i dati della ricevuta di restituzione con i libri associati.
+     *
+     * @urlParam id int required L'ID della prenotazione da visualizzare. No-example
+     *
+     * @queryParam metadati boolean Dati della ricevuta da includere. No-example
+     * @queryParam libri boolean Libri della ricevuta da includere. No-example
+     *
+     * @responseField id ID della ricevuta.
+     * @responseField numero_restituzione Numero progressivo della restituzione.
+     * @responseField libri Elenco dei libri della restituzione.
      */
     public function showRestituzione(Request $request, int $id): JsonResponse
     {
-        if ($id <= 0) {
-            return $this->errorResponse('ID non valido', 422);
-        }
 
         $metadati = $request->boolean('metadati', true);
         $libri = $request->boolean('libri', true);
@@ -30,24 +42,24 @@ class RestituzioneController extends Controller
             return $this->errorResponse('Nessun parametro valido fornito', 422);
         }
 
-        if (! Restituzione::where('ID', $id)->exists()) {
+        $risposta = Restituzione::dettaglioRicevuta($id, $metadati, $libri);
+        if (is_null($risposta)) {
             return $this->notFoundResponse("Restituzione $id non trovata");
-        }
-
-        $risposta = [];
-        if ($metadati) {
-            $risposta['metadati'] = Restituzione::getMetadati($id);
-        }
-        if ($libri) {
-            $risposta['libri'] = Restituzione::getLibri($id);
         }
 
         return $this->successResponse($risposta);
     }
 
     /**
-     * Anteprima dei libri e soldi da restituire per un dato utente.
-     * GET /api/ricevute/restituzione/preview?userid={userid}
+     * Anteprima restituzione
+     *
+     * Mostra i libri restituibili e il valore stimato per un utente.
+     *
+     * @queryParam userid int required L'ID dell'utente da analizzare. No-example
+     *
+     * @responseField ricevute_ritiro Elenco sintetico delle ricevute di ritiro.
+     * @responseField libri Elenco dei libri restituibili.
+     * @responseField profitto_utente Importo stimato da restituire all'utente.
      */
     public function previewRestituzione(Request $request): JsonResponse
     {
@@ -92,8 +104,15 @@ class RestituzioneController extends Controller
     }
 
     /**
+     * Nuova restituzione
+     *
      * Crea una nuova ricevuta di restituzione per un utente.
-     * POST /api/ricevute/restituzione
+     *
+     * @bodyParam userid integer required L'ID dell'utente che effettua la restituzione. No-example
+     *
+     * @responseField id_restituzione ID della ricevuta creata.
+     * @responseField numero_restituzione Numero progressivo della ricevuta.
+     * @responseField pdf_url URL del PDF generato.
      */
     public function addRestituzione(Request $request): JsonResponse
     {
@@ -112,7 +131,7 @@ class RestituzioneController extends Controller
     }
 
     /**
-     * Elabora la creazione della restituzione.
+     * Elabora la restituzione.
      */
     private function processRestituzione(int $userId): JsonResponse
     {
@@ -141,18 +160,17 @@ class RestituzioneController extends Controller
             return $this->errorResponse('Nessun libro da restituire', Response::HTTP_BAD_REQUEST);
         }
 
-        $numeroRestituzione = $this->getNextProgressivo('restituzionen', 'numero_restituzione');
+        $numeroRestituzione = $this->getNextProgressivo('restituzioni', 'numero_restituzione');
 
-        $idRestituzione = DB::table('restituzionen')->insertGetId([
-            'id_utente' => $userId,
+        $idRestituzione = Restituzione::create([
             'data' => now(),
             'numero_restituzione' => $numeroRestituzione,
-        ]);
+            'id_utente' => $userId,
+        ])->id;
 
         $libriIds = array_column($libriRestituibili, 'id');
-        DB::table('libron')
-            ->whereIn('id', $libriIds)
-            ->update(['id_restituzione' => $idRestituzione]);
+
+        Libri::whereIn('id', $libriIds)->update(['id_restituzione' => $idRestituzione]);
 
         $libriCompleti = Restituzione::getLibri($idRestituzione);
 
@@ -175,29 +193,29 @@ class RestituzioneController extends Controller
             'restituzione'
         );
         // Aggiungi il link al PDF nel db
-        DB::table('restituzionen')->where('id', $idRestituzione)->update([
-            'url_pdf' => $pdfUrl,
-        ]);
+        Restituzione::aggiornaUrlPdf($idRestituzione, $pdfUrl);
 
         return $this->createdResponse(['id_restituzione' => $idRestituzione, 'numero_restituzione' => $numeroRestituzione, 'pdf_url' => $pdfUrl]);
     }
 
     /**
-     * Recupera i libri di un ritiro con informazioni sullo stato.
+     * Libri del ritiro con stato
+     *
+     * Recupera i libri di uno o più ritiri con le informazioni sullo stato.
      */
-    private function getLibriRitiroConStato(int|array $ritiroId): \Illuminate\Support\Collection
+    private function getLibriRitiroConStato(int|array $ritiroId): Collection
     {
-        $query = DB::table('libron')
-            ->join('catalogo', 'libron.id_libro', '=', 'catalogo.ID')
+        $query = Libri::query()
+            ->join('catalogo', 'libri.id_catalogo', '=', 'catalogo.ID')
             ->select(
-                'libron.id',
-                'libron.numero_libro',
+                'libri.id',
+                'libri.numero_libro',
                 'catalogo.titolo',
                 'catalogo.ISBN as isbn',
-                'libron.prezzo',
-                'libron.id_vendita',
-                'libron.id_prenotazione',
-                'libron.id_restituzione'
+                'libri.prezzo',
+                'libri.id_vendita',
+                'libri.id_prenotazione',
+                'libri.id_restituzione'
             );
 
         if (is_array($ritiroId)) {

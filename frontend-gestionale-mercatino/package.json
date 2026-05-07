@@ -15,24 +15,25 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
-    "axios": "^1.13.6",
+    "axios": "^1.16.0",
     "pinia": "^3.0.4",
-    "vue": "^3.5.29",
-    "vue-router": "^5.0.3",
-    "vue3-toastify": "^0.2.8",
-    "vuetify": "^4.0.0"
+    "vue": "^3.5.34",
+    "vue-router": "^5.0.6",
+    "vue3-toastify": "^0.2.9",
+    "vuetify": "^4.0.6"
   },
   "devDependencies": {
-    "@eslint/css": "^0.14.1",
+    "@eslint/css": "^1.2.0",
     "@eslint/js": "^10.0.1",
-    "@iconify/vue": "^5.0.0",
-    "@vitejs/plugin-vue": "^6.0.4",
-    "eslint": "^10.0.2",
-    "eslint-plugin-vue": "^10.8.0",
-    "globals": "^17.4.0",
-    "prettier": "^3.8.1",
-    "vite": "^7.3.1",
+    "@iconify/vue": "^5.0.1",
+    "@vitejs/devtools": "^0.1.19",
+    "@vitejs/plugin-vue": "^6.0.6",
+    "eslint": "^10.3.0",
+    "eslint-plugin-vue": "^10.9.1",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "vite": "^8.0.11",
     "vite-plugin-compression": "^0.5.1",
-    "vite-plugin-vue-devtools": "^8.0.7"
+    "vite-plugin-vue-devtools": "^8.1.1"
   }
 }

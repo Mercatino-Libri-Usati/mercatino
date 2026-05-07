@@ -1,5 +1,5 @@
 <template>
-  <v-container class="ricevute-container py-10 px-12" fluid>
+  <v-container class="page-container py-10 px-12" fluid>
     <h1 class="text-center mb-8">Elenco Ricevute</h1>
 
     <div class="filters mb-6">
@@ -182,7 +182,7 @@
                         <td>{{ libro.numero_libro }}</td>
                         <td>{{ libro.titolo }}</td>
                         <td>{{ libro.isbn }}</td>
-                        <td>{{ libro.prezzo.toFixed(2) }} €</td>
+                        <td>{{ Number(libro.prezzo).toFixed(2) }} €</td>
                       </tr>
                     </tbody>
                   </v-table>
@@ -201,8 +201,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { apiClient } from '@/apiConfig'
 import { toast } from '@/toast.js'
+
+const route = useRoute()
+const router = useRouter()
 
 const TIPI_RICEVUTE = {
   Ritiro: { label: 'Ritiro', color: 'green', endpoint: 'ritiro' },
@@ -245,8 +249,21 @@ const aggiornaStylingChip = (val) => {
   return { color, border: `1px solid ${color}`, background: 'transparent' }
 }
 
+const updateUrlFromFilters = () => {
+  const query = {}
+  if (filtriAttivi.utente) query.utente = filtriAttivi.utente
+  if (filtriAttivi.libro) query.libro = filtriAttivi.libro
+  if (filtriAttivi.isbn) query.isbn = filtriAttivi.isbn
+  if (filtriAttivi.numero) query.numero = filtriAttivi.numero
+  if (filtriAttivi.tipo?.length) query.tipo = filtriAttivi.tipo
+  if (filtriAttivi.date_from) query.date_from = filtriAttivi.date_from
+  if (filtriAttivi.date_to) query.date_to = filtriAttivi.date_to
+  router.replace({ query }).catch(() => {})
+}
+
 const fetchRicevute = async () => {
   loading.value = true
+  updateUrlFromFilters()
   try {
     const { data } = await apiClient.get('/api/ricevute', { params: filtriAttivi })
     ricevute.value = data
@@ -255,7 +272,7 @@ const fetchRicevute = async () => {
     cacheRicevute.value = {}
     dettagliInCaricamento.value = {}
   } catch (err) {
-    toast.error('Errore caricamento ricevute: ' + (err.message || err))
+    toast.error(err.response?.data?.message || 'Errore caricamento ricevute')
   }
   loading.value = false
 }
@@ -315,10 +332,23 @@ const caricaDettagliRicevuta = async (item) => {
     )
     cacheRicevute.value[key] = data
   } catch (err) {
-    toast.error('Errore caricamento dettagli: ' + (err.message || err))
+    toast.error(err.response?.data?.message || 'Errore caricamento dettagli')
   }
   dettagliInCaricamento.value[key] = false
 }
 
-onMounted(fetchRicevute)
+onMounted(() => {
+  if (route.query.utente) filtriAttivi.utente = route.query.utente
+  if (route.query.libro) filtriAttivi.libro = route.query.libro
+  if (route.query.isbn) filtriAttivi.isbn = route.query.isbn
+  if (route.query.numero) filtriAttivi.numero = route.query.numero
+  if (route.query.date_from) filtriAttivi.date_from = route.query.date_from
+  if (route.query.date_to) filtriAttivi.date_to = route.query.date_to
+
+  if (route.query.tipo) {
+    filtriAttivi.tipo = Array.isArray(route.query.tipo) ? route.query.tipo : [route.query.tipo]
+  }
+
+  fetchRicevute()
+})
 </script>

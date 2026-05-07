@@ -12,9 +12,12 @@ import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
 import * as directives from 'vuetify/directives'
 import {
+  VSwitch,
+  VAlert,
   VBtn,
   VContainer,
   VIcon,
+  VList,
   VTextField,
   VRow,
   VCol,
@@ -35,6 +38,16 @@ import {
   VExpansionPanel,
   VExpansionPanelTitle,
   VExpansionPanelText,
+  VDataTable,
+  VDataTableVirtual,
+  VSkeletonLoader,
+  VListItem,
+  VListItemTitle,
+  VApp,
+  VMain,
+  VAppBar,
+  VTooltip,
+  VListItemSubtitle,
 } from 'vuetify/components'
 
 // Vue Toastification
@@ -43,6 +56,8 @@ import 'vue3-toastify/dist/index.css'
 
 const vuetify = createVuetify({
   components: {
+    VSwitch,
+    VAlert,
     VForm,
     VBtn,
     VContainer,
@@ -66,6 +81,17 @@ const vuetify = createVuetify({
     VExpansionPanel,
     VExpansionPanelTitle,
     VExpansionPanelText,
+    VDataTable,
+    VDataTableVirtual,
+    VSkeletonLoader,
+    VList,
+    VListItem,
+    VListItemTitle,
+    VListItemSubtitle,
+    VApp,
+    VMain,
+    VAppBar,
+    VTooltip,
   },
   directives,
   icons: {

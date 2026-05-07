@@ -1,5 +1,5 @@
 <template>
-  <v-container class="vendita-container py-10 px-12" fluid>
+  <v-container class="page-container py-10 px-12" fluid>
     <h1 class="text-center mb-8">Vendita Libri</h1>
 
     <div v-if="!ricevutaCreata">
@@ -91,7 +91,7 @@ const handleSearch = async () => {
   try {
     await store.aggiungiLibro(valore)
   } catch (err) {
-    toast.error(err.response?.data?.message || err)
+    toast.error(err.response?.data?.message || 'Libro non valido o già venduto')
   } finally {
     loading.value = false
   }
@@ -117,7 +117,7 @@ const handleConcludi = async () => {
     store.svuotaLibri()
     ricevutaCreata.value = true
   } catch (error) {
-    toast.error(error || 'Errore vendita')
+    toast.error(error.response?.data?.message || 'Errore vendita')
   } finally {
     loadingVendita.value = false
   }

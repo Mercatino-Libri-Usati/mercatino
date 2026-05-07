@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GestisceRicevute;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Restituzione extends Model
 {
-    protected $table = 'restituzionen';
+    use GestisceRicevute;
 
-    protected $primaryKey = 'ID';
+    protected $table = 'restituzioni';
+
+    protected $primaryKey = 'id';
 
     public $timestamps = false;
 
@@ -19,10 +23,10 @@ class Restituzione extends Model
     public static function show(): Builder
     {
         return self::select(
-            'ID as id',
+            'id',
             'data as data',
             'numero_restituzione as numero',
-            \Illuminate\Support\Facades\DB::raw("'Restituzione' as tipo"),
+            DB::raw("'Restituzione' as tipo"),
             'id_utente',
             'url_pdf'
         );
@@ -30,16 +34,16 @@ class Restituzione extends Model
 
     public static function getLibri(int $idRestituzione): Collection
     {
-        $libri = \App\Models\Libri::where('id_restituzione', $idRestituzione)
-            ->join('catalogo', 'libron.id_libro', '=', 'catalogo.ID')
+        $libri = Libri::where('id_restituzione', $idRestituzione)
+            ->join('catalogo', 'libri.id_catalogo', '=', 'catalogo.ID')
             ->select(
-                'libron.id',
-                'libron.numero_libro',
+                'libri.id',
+                'libri.numero_libro',
                 'catalogo.titolo',
                 'catalogo.ISBN as isbn',
-                'libron.prezzo as prezzo_originale',
-                'libron.id_restituzione',
-                'libron.id_vendita'
+                'libri.prezzo as prezzo_originale',
+                'libri.id_restituzione',
+                'libri.id_vendita'
             )
             ->get();
 
@@ -72,11 +76,11 @@ class Restituzione extends Model
             return null;
         }
 
-        $user = User::where('ID_utenti', $restituzione->id_utente)->first();
+        $user = Credenziali::where('id_utente', $restituzione->id_utente)->first();
 
         return [
             'utente_id' => $restituzione->id_utente,
-            'utente_nominativo' => $user ? $user->getNomeCognome() : 'N/A',
+            'utente_nominativo' => $user?->getNomeCognome() ?? 'N/A',
             'numero_restituzione' => $restituzione->numero,
             'pdf_url' => $restituzione->url_pdf,
         ];

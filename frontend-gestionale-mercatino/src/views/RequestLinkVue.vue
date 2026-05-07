@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex justify-center align-center" style="min-height: 100vh">
+  <div class="d-flex justify-center align-center page-container">
     <v-card width="400" class="pa-6" v-if="!inviato && !loading">
       <v-card-title class="text-center mb-6">Imposta nuova password</v-card-title>
 
@@ -17,7 +17,7 @@
       <v-card-title class="mb-4">Invio in corso...</v-card-title>
       <p>Stiamo inviando il link alla tua email. Attendi qualche istante.</p>
     </v-card>
-    <v-card width="400" class="pa-6 text-center" v-if ="inviato && !loading">
+    <v-card width="400" class="pa-6 text-center" v-if="inviato && !loading">
       <v-card-title class="mb-4">Link inviato!</v-card-title>
       <p>Riceverai a breve un link per impostare una nuova password alla email indicata.</p>
     </v-card>
@@ -43,8 +43,11 @@ const requestLink = async () => {
   try {
     await apiClient.post('/api/richiedi-link-password', form.value)
     inviato.value = true
-  } catch {
-    toast.error("Errore durante la richiesta del link. Verifica l'email inserita e riprova.")
+  } catch (err) {
+    toast.error(
+      err.response?.data?.message ||
+        "Errore durante la richiesta del link. Verifica l'email inserita e riprova.",
+    )
   } finally {
     loading.value = false
   }

@@ -1,151 +1,166 @@
 ﻿<template>
-  <v-container fluid class="py-6 px-4">
-    <!-- Header -->
-    <div class="d-flex align-center mb-5">
-      <h1 class="text-center mb-8">Magazzino</h1>
-      <v-spacer />
-      <v-chip color="primary" variant="tonal" prepend-icon="mdi-book-multiple"
-        >{{ libriFiltrati.length }} libri</v-chip
-      >
-      <v-btn
-        icon="mdi-refresh"
-        variant="tonal"
-        color="primary"
-        size="small"
-        :loading="loading"
-        @click="caricaLibri"
-      />
-    </div>
-
+  <v-card flat class="page-container mt-4" title="Magazzino">
     <v-text-field
       v-model="ricerca"
       prepend-inner-icon="mdi-magnify"
       label="Cerca titolo, ISBN, proprietario..."
       variant="outlined"
-      class="text-centered"
+      hide-details
+      class="mb-4"
     />
 
-    <!-- Tabella -->
-    <v-table hover>
-      <thead>
-        <tr>
-          <th class="text-center">
-            N
-            <v-btn icon size="small" @click="ordinaPerNumero">
-              <v-icon size="x-small">mdi-sort</v-icon>
-            </v-btn>
-          </th>
-          <th>ISBN</th>
-          <th>Titolo</th>
-          <th>Prezzo</th>
-          <th>Ritiro</th>
-          <th>Prenotaz.</th>
-          <th>Vendita</th>
-          <th>Restit.</th>
-          <th>Note</th>
-          <th>Proprietario</th>
-          <th>Stato</th>
-          <th>Azioni</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-if="loading">
-          <td colspan="12" class="text-center py-8">
-            <v-progress-circular indeterminate color="primary" />
-          </td>
-        </tr>
-        <tr v-else-if="!libriFiltrati.length">
-          <td colspan="12" class="text-center py-8 text-disabled">
-            <v-icon icon="mdi-book-off-outline" size="40" /><br />Nessun libro trovato
-          </td>
-        </tr>
-        <tr v-for="l in libriFiltrati" :key="l.id">
-          <td class="text-center">{{ l.numero }}</td>
-          <td class="text-center text-primary font-weight-medium">{{ l.isbn }}</td>
-          <td class="titolo-cell">{{ l.titolo }}</td>
-          <td>
-            <v-text-field
-              v-model="l.prezzo"
-              type="number"
-              variant="outlined"
-              density="compact"
-              hide-details
-              prefix="€"
-              style="width: 150px"
-            />
-          </td>
-          <td class="text-center">
-            <v-chip v-if="l.id_ritiro" size="x-small" color="green" variant="tonal"
-              >#{{ l.id_ritiro }}</v-chip
-            ><span v-else class="text-disabled">--</span>
-          </td>
-          <td class="text-center">
-            <v-chip v-if="l.id_prenotazione" size="x-small" color="purple" variant="tonal"
-              >#{{ l.id_prenotazione }}</v-chip
-            ><span v-else class="text-disabled">--</span>
-          </td>
-          <td class="text-center">
-            <v-chip v-if="l.id_vendita" size="x-small" color="blue" variant="tonal"
-              >#{{ l.id_vendita }}</v-chip
-            ><span v-else class="text-disabled">--</span>
-          </td>
-          <td class="text-center">
-            <v-chip v-if="l.id_restituzione" size="x-small" color="gold" variant="tonal"
-              >#{{ l.id_restituzione }}</v-chip
-            ><span v-else class="text-disabled">--</span>
-          </td>
-          <td>
-            <v-text-field
-              v-model="l.note"
-              variant="outlined"
-              density="compact"
-              hide-details
-              style="width: 130px"
-            />
-          </td>
-          <td class="text-center text-body-2">{{ l.proprietario }}</td>
-          <td class="text-center">
-            <v-chip
-              :color="statoColor[l.stato?.toLowerCase()] || 'grey'"
-              :prepend-icon="statoIcon[l.stato?.toLowerCase()] || 'mdi-help-circle-outline'"
+    <v-data-table
+      :headers="headers"
+      :items="libri"
+      :loading="loading"
+      :items-per-page="100"
+      :search="ricerca"
+      density="compact"
+      class="table-magazzino"
+    >
+      <template #[`item.isbn`]="{ item }">
+        <span class="text-primary font-weight-medium">{{ item.isbn }}</span>
+      </template>
+
+      <template #[`item.titolo`]="{ item }">
+        <div class="text-truncate" style="max-width: 250px" :title="item.titolo">
+          {{ item.titolo }}
+        </div>
+      </template>
+
+      <template #[`item.prezzo`]="{ item }">
+        <v-text-field
+          v-model="item.prezzo"
+          type="number"
+          variant="outlined"
+          density="compact"
+          hide-details
+        />
+      </template>
+
+      <template #[`item.id_ritiro`]="{ item }">
+        <v-chip
+          v-if="item.id_ritiro"
+          size="x-small"
+          color="green"
+          variant="tonal"
+          :to="{ path: '/ricevute', query: { numero: item.id_ritiro, tipo: 'Ritiro' } }"
+          >#{{ item.id_ritiro }}</v-chip
+        >
+        <span v-else class="text-disabled">--</span>
+      </template>
+
+      <template #[`item.id_prenotazione`]="{ item }">
+        <v-chip
+          v-if="item.id_prenotazione"
+          size="x-small"
+          color="purple"
+          variant="tonal"
+          :to="{
+            path: '/ricevute',
+            query: { numero: item.id_prenotazione, tipo: 'Prenotazione' },
+          }"
+          >#{{ item.id_prenotazione }}</v-chip
+        >
+        <span v-else class="text-disabled">--</span>
+      </template>
+
+      <template #[`item.id_vendita`]="{ item }">
+        <v-chip
+          v-if="item.id_vendita"
+          size="x-small"
+          color="blue"
+          variant="tonal"
+          :to="{ path: '/ricevute', query: { numero: item.id_vendita, tipo: 'Vendita' } }"
+          >#{{ item.id_vendita }}</v-chip
+        >
+        <span v-else class="text-disabled">--</span>
+      </template>
+
+      <template #[`item.id_restituzione`]="{ item }">
+        <v-chip
+          v-if="item.id_restituzione"
+          size="x-small"
+          color="amber-darken-2"
+          variant="tonal"
+          :to="{
+            path: '/ricevute',
+            query: { numero: item.id_restituzione, tipo: 'Restituzione' },
+          }"
+          >#{{ item.id_restituzione }}</v-chip
+        >
+        <span v-else class="text-disabled">--</span>
+      </template>
+
+      <template #[`item.note`]="{ item }">
+        <v-text-field v-model="item.note" variant="outlined" density="compact" hide-details />
+      </template>
+
+      <template #[`item.stato`]="{ item }">
+        <v-tooltip location="top">
+          <template #activator="{ props }">
+            <v-icon
+              v-bind="props"
+              :color="statoConfig[item.stato?.toLowerCase()]?.color || 'grey'"
+              :icon="statoConfig[item.stato?.toLowerCase()]?.icon || 'mdi-help-circle-outline'"
               size="small"
-              variant="tonal"
-              >{{ l.stato }}</v-chip
-            >
-          </td>
-          <td>
-            <v-btn icon size="x-small" color="primary" :loading="l._loading" @click="salvaLibro(l)">
-              <v-icon>mdi-content-save</v-icon>
-            </v-btn>
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
-  </v-container>
+            ></v-icon>
+          </template>
+          <span>{{ item.stato }}</span>
+        </v-tooltip>
+      </template>
+
+      <template #[`item.azioni`]="{ item }">
+        <v-btn
+          icon
+          size="x-small"
+          color="primary"
+          :loading="loadingAcquisti.has(item.id)"
+          @click="salvaLibro(item)"
+        >
+          <v-icon>mdi-content-save</v-icon>
+        </v-btn>
+      </template>
+
+      <template #no-data>
+        <div class="py-8 text-center text-disabled">
+          <v-icon icon="mdi-book-off-outline" size="40" /><br />Nessun libro trovato
+        </div>
+      </template>
+    </v-data-table>
+  </v-card>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { shallowRef, ref, onMounted, reactive } from 'vue'
 import { apiClient } from '@/apiConfig'
-const libri = ref([])
-const loading = ref(false)
-const ricerca = ref('')
-const filtroStato = ref(null)
 import { toast } from '@/toast.js'
 
-const statoColor = {
-  disponibile: 'green',
-  venduto: 'blue',
-  prenotato: 'purple',
-  restituito: 'amber-darken-2',
-  ritirato: 'purple',
-}
-const statoIcon = {
-  disponibile: 'mdi-check-circle-outline',
-  venduto: 'mdi-cash-check',
-  prenotato: 'mdi-bookmark-check',
-  restituito: 'mdi-keyboard-return',
-  ritirato: 'mdi-truck-check',
+const libri = shallowRef([])
+const loading = ref(false)
+const loadingAcquisti = reactive(new Set())
+const ricerca = ref('')
+
+const headers = [
+  { title: 'N', key: 'numero', align: 'center', width: '4%' },
+  { title: 'ISBN', key: 'isbn', align: 'center', width: '10%' },
+  { title: 'Titolo', key: 'titolo', width: '10%' },
+  { title: 'Prezzo', key: 'prezzo', width: '10%', sortable: true },
+  { title: 'Ritiro', key: 'id_ritiro', align: 'center', width: '7%' },
+  { title: 'Prenotaz.', key: 'id_prenotazione', align: 'center', width: '7%' },
+  { title: 'Vendita', key: 'id_vendita', align: 'center', width: '7%' },
+  { title: 'Restit.', key: 'id_restituzione', align: 'center', width: '7%' },
+  { title: 'Note', key: 'note', sortable: false, width: '10%' },
+  { title: 'Proprietario', key: 'proprietario', align: 'center', width: '10%' },
+  { title: 'Stato', key: 'stato', align: 'center', width: '4%' },
+  { title: 'Azione', key: 'azioni', sortable: false, align: 'center', width: '5%' },
+]
+
+const statoConfig = {
+  disponibile: { color: 'green', icon: 'mdi-check-circle-outline' },
+  venduto: { color: 'blue', icon: 'mdi-cash-check' },
+  prenotato: { color: 'purple', icon: 'mdi-bookmark-check' },
+  restituito: { color: 'amber-darken-2', icon: 'mdi-keyboard-return' },
 }
 
 const caricaLibri = async () => {
@@ -153,49 +168,39 @@ const caricaLibri = async () => {
   try {
     libri.value = (await apiClient.get('/api/libri')).data
   } catch (err) {
-    toast.error('Errore caricamento libri: ' + (err.message || err))
+    toast.error(err.response?.data?.message || 'Errore caricamento libri')
   } finally {
     loading.value = false
   }
 }
-const ordineCrescente = ref(true)
-
-const ordinaPerNumero = () => {
-  libri.value.sort((a, b) => (ordineCrescente.value ? a.numero - b.numero : b.numero - a.numero))
-  ordineCrescente.value = !ordineCrescente.value
-}
 
 // Unico metodo per salvare prezzo e note
-const salvaLibro = async (l) => {
-  l._loading = true
+const salvaLibro = async (libro) => {
+  loadingAcquisti.add(libro.id)
   try {
     await Promise.all([
-      apiClient.patch(`/api/libro/${l.id}/prezzo`, { prezzo: l.prezzo }),
-      apiClient.patch(`/api/libro/${l.id}/note`, { note: l.note }),
+      apiClient.patch(`/api/libro/${libro.id}/prezzo`, { prezzo: libro.prezzo }),
+      apiClient.patch(`/api/libro/${libro.id}/note`, { note: libro.note }),
     ])
     toast.success('Libro aggiornato!')
   } catch (err) {
-    toast.error('Errore aggiornamento libro: ' + (err.message || err))
+    toast.error(err.response?.data?.message || 'Errore aggiornamento libro')
   } finally {
-    l._loading = false
+    loadingAcquisti.delete(libro.id)
   }
+  caricaLibri()
 }
-
-const libriFiltrati = computed(() => {
-  const q = ricerca.value?.toLowerCase() || ''
-  return libri.value.filter(
-    (l) =>
-      (!q || [l.titolo, l.isbn, l.proprietario].some((v) => v?.toLowerCase().includes(q))) &&
-      (!filtroStato.value || l.stato === filtroStato.value),
-  )
-})
-
 onMounted(caricaLibri)
 </script>
 
 <style scoped>
+.table-magazzino :deep(.v-data-table__th),
+.table-magazzino :deep(.v-data-table__td) {
+  padding: 0 4px !important;
+  font-size: 0.85rem;
+}
+
 .titolo-cell {
-  max-width: 180px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

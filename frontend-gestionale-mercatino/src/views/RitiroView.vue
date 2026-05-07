@@ -1,5 +1,5 @@
 <template>
-  <v-container class="ritiro-container py-10 px-12" fluid>
+  <v-container class="page-container py-10 px-12" fluid>
     <h1 class="text-center mb-8">Ritiro Libri</h1>
 
     <div v-if="!ricevutaCreata">

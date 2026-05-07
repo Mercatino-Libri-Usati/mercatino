@@ -2,25 +2,31 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GestisceRicevute;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Vendita extends Model
 {
-    protected $table = 'venditan';
+    use GestisceRicevute;
 
-    protected $primaryKey = 'ID';
+    protected $table = 'vendite';
+
+    protected $primaryKey = 'id';
 
     public $timestamps = false;
 
     protected $guarded = [];
 
-    public static function show(): \Illuminate\Database\Eloquent\Builder
+    public static function show(): Builder
     {
         return self::select(
-            'ID as id',
+            'id',
             'data as data',
             'numero_vendita as numero',
-            \Illuminate\Support\Facades\DB::raw("'Vendita' as tipo"),
+            DB::raw("'Vendita' as tipo"),
             'id_utente',
             'url_pdf'
         );
@@ -29,17 +35,17 @@ class Vendita extends Model
     /**
      * Restituisce i libri di una ricevuta di vendita.
      */
-    public static function getLibri(int $idVendita): \Illuminate\Support\Collection
+    public static function getLibri(int $idVendita): Collection
     {
         $libri = Libri::where('id_vendita', $idVendita)
-            ->join('catalogo', 'libron.id_libro', '=', 'catalogo.ID')
+            ->join('catalogo', 'libri.id_catalogo', '=', 'catalogo.ID')
             ->select(
-                'libron.id',
-                'libron.numero_libro',
+                'libri.id',
+                'libri.numero_libro',
                 'catalogo.titolo',
                 'catalogo.ISBN as isbn',
-                'libron.prezzo as prezzo_originale',
-                'libron.id_vendita',
+                'libri.prezzo as prezzo_originale',
+                'libri.id_vendita',
             )
             ->get();
 
@@ -68,11 +74,11 @@ class Vendita extends Model
             return null;
         }
 
-        $user = User::where('ID_utenti', $vendita->id_utente)->first();
+        $user = Credenziali::where('id_utente', $vendita->id_utente)->first();
 
         return [
             'utente_id' => $vendita->id_utente,
-            'utente_nominativo' => $user ? $user->getNomeCognome() : 'N/A',
+            'utente_nominativo' => $user?->getNomeCognome() ?? 'N/A',
             'numero_vendita' => $vendita->numero,
             'pdf_url' => $vendita->url_pdf,
         ];

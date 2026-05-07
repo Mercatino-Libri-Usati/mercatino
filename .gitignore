@@ -3,6 +3,9 @@ node_modules/
 npm-debug.log
 yarn-error.log
 backend-api/storage/*
+backend-api/.scribe/*
+backend-api/public/vendor/*
+backend-api/resources/views/scribe/index.blade.php
 
 # Cartella con il compilato da depolayare sul server (vedi util/buildPerDeploy.py)
 /toupload/*
@@ -33,3 +36,5 @@ Homestead.json
 .phpactor.json
 auth.json
 /toupload
+
+

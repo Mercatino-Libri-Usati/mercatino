@@ -9,4 +9,10 @@ export const toast = {
   error(msg) {
     toastify.error(msg)
   },
+  info(msg) {
+    toastify.info(msg)
+  },
+  warning(msg) {
+    toastify.warning(msg)
+  },
 }

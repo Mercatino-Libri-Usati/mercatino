@@ -4,30 +4,41 @@ namespace App\Http\Controllers;
 
 use App\Models\Libri;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * @group Libro
+ */
 class LibriController extends Controller
 {
+    /**
+     * Elenco libri
+     *
+     * Restituisce l'elenco completo dei libri presenti nel sistema con il loro stato (es. venduto, reso).
+     *
+     * @responseField id ID del libro.
+     * @responseField titolo Titolo del libro.
+     * @responseField stato Stato attuale del libro nel sistema.
+     */
     public function index(): JsonResponse
     {
-        $libri = DB::table('libron')
-            ->join('catalogo', 'libron.id_libro', '=', 'catalogo.ID')
-            ->join('ritiron', 'libron.id_ritiro', '=', 'ritiron.id')
-            ->join('utenti', 'ritiron.id_utente', '=', 'utenti.ID')
+        $libri = Libri::query()
+            ->join('catalogo', 'libri.id_catalogo', '=', 'catalogo.ID')
+            ->join('ritiri', 'libri.id_ritiro', '=', 'ritiri.id')
+            ->join('utenti', 'ritiri.id_utente', '=', 'utenti.id')
             ->select(
-                'libron.id',
-                'libron.numero_libro as numero',
+                'libri.id',
+                'libri.numero_libro as numero',
                 'catalogo.ISBN as isbn',
                 'catalogo.titolo',
-                'libron.prezzo',
-                'libron.id_ritiro',
-                'libron.id_prenotazione',
-                'libron.id_vendita',
-                'libron.id_restituzione',
-                'libron.note',
-                DB::raw("CONCAT(utenti.nome, ' ', utenti.cognome) as proprietario"),
+                'libri.prezzo',
+                'libri.id_ritiro',
+                'libri.id_prenotazione',
+                'libri.id_vendita',
+                'libri.id_restituzione',
+                'libri.note',
             )
-            ->orderBy('libron.numero_libro', 'desc')
+            ->selectRaw("CONCAT(utenti.nome, ' ', utenti.cognome) as proprietario")
+            ->orderBy('libri.numero_libro', 'desc')
             ->get();
 
         foreach ($libri as $libro) {
@@ -37,6 +48,17 @@ class LibriController extends Controller
         return response()->json($libri);
     }
 
+    /**
+     * Modifica note libro
+     *
+     * Aggiorna le note associate a uno specifico libro.
+     *
+     * @urlParam id int required L'ID del libro. No-example
+     *
+     * @bodyParam note string Le nuove note da inserire. No-example
+     *
+     * @responseField message Messaggio di conferma.
+     */
     public function modificaNote(int $id): JsonResponse
     {
 
@@ -49,6 +71,17 @@ class LibriController extends Controller
         return response()->json(['message' => 'Note aggiornate con successo']);
     }
 
+    /**
+     * Modifica prezzo libro
+     *
+     * Aggiorna eccezionalmente il prezzo di uno specifico libro scavalcando il catalogo.
+     *
+     * @urlParam id int required L'ID del libro. No-example
+     *
+     * @bodyParam prezzo numeric required Il nuovo prezzo. No-example
+     *
+     * @responseField message Messaggio di conferma.
+     */
     public function modificaPrezzo(int $id): JsonResponse
     {
         $validated = request()->validate([

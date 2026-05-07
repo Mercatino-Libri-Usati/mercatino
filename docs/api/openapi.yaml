@@ -1,0 +1,1040 @@
+openapi: 3.0.3
+info:
+  title: 'API Libri Usati Crema documentazione'
+  description: ''
+  version: 1.0.0
+servers:
+  -
+    url: 'https://api.libriusaticrema.it'
+tags:
+  -
+    name: Cassa
+    description: ''
+  -
+    name: Catalogo
+    description: ''
+  -
+    name: Libro
+    description: ''
+  -
+    name: Prenotazioni
+    description: ''
+  -
+    name: Registrazione
+    description: ''
+  -
+    name: Restituzione
+    description: ''
+  -
+    name: Ricevute
+    description: ''
+  -
+    name: Ritiro
+    description: ''
+  -
+    name: 'Strumenti amministrativi'
+    description: ''
+  -
+    name: Utenti
+    description: ''
+  -
+    name: Vendita
+    description: ''
+paths:
+  /api/stats:
+    get:
+      summary: Statistiche
+      operationId: statistiche
+      description: 'Ottiene statistiche generali sul sistema, come numero di libri e incassi.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Cassa
+      security: []
+  /api/operazioni:
+    get:
+      summary: 'Elenco operazioni'
+      operationId: elencoOperazioni
+      description: 'Restituisce tutte le operazioni di cassa ordinate dalla più recente.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Cassa
+      security: []
+  /api/cassa:
+    get:
+      summary: 'Stato cassa'
+      operationId: statoCassa
+      description: 'Restituisce il bilancio totale della cassa e il riepilogo giornaliero.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Cassa
+      security: []
+  '/api/operazione/{id}':
+    delete:
+      summary: 'Elimina operazione'
+      operationId: eliminaOperazione
+      description: 'Elimina una operazione manuale dal registro di cassa.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Cassa
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: "L'ID dell'operazione da eliminare."
+        example: null
+        required: true
+        schema:
+          type: integer
+  /api/operazione/manuale:
+    post:
+      summary: 'Nuova operazione'
+      operationId: nuovaOperazione
+      description: 'Inserisce manualmente una nuova operazione di cassa.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Cassa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                importo:
+                  type: numeric
+                  description: "Importo dell'operazione."
+                  example: null
+                causale:
+                  type: string
+                  description: "La causale dell'operazione."
+                  example: null
+              required:
+                - importo
+      security: []
+  /api/adozioni:
+    get:
+      summary: Adozioni
+      operationId: adozioni
+      description: 'Restituisce tutte le classi che adottano ogni libro del catalogo.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Catalogo
+      security: []
+  '/api/catalogo/{id_catalogo}/prezzo':
+    patch:
+      summary: 'Modifica prezzo catalogo'
+      operationId: modificaPrezzoCatalogo
+      description: 'Modifica il prezzo di default di un libro nel catalogo, che sarà usato per i nuovi ritiri.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Catalogo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prezzo:
+                  type: numeric
+                  description: 'Il nuovo prezzo.'
+                  example: null
+              required:
+                - prezzo
+      security: []
+    parameters:
+      -
+        in: path
+        name: id_catalogo
+        description: "L'ID del libro."
+        example: null
+        required: true
+        schema:
+          type: integer
+  '/api/util/isAccettato/{isbn}':
+    get:
+      summary: 'Verifica libro accettato'
+      operationId: verificaLibroAccettato
+      description: 'Verifica se un libro è accettato (anche con ISBN parziale) e ritorna titolo e prezzo.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Libro
+      security: []
+    parameters:
+      -
+        in: path
+        name: isbn
+        description: "L'ISBN completo o parziale del libro da verificare."
+        example: null
+        required: true
+        schema:
+          type: string
+  '/api/util/isPrenotabile/{isbn}':
+    get:
+      summary: 'Verifica libro prenotabile'
+      operationId: verificaLibroPrenotabile
+      description: 'Verifica se un libro è prenotabile dato un ISBN, cioè se ci sono copie disponibili (non prenotate, vendute o restituite).'
+      parameters: []
+      responses: {  }
+      tags:
+        - Libro
+      security: []
+    parameters:
+      -
+        in: path
+        name: isbn
+        description: "L'ISBN del libro da verificare."
+        example: null
+        required: true
+        schema:
+          type: string
+  '/api/util/isVendibile/{numeroAnnuo}':
+    get:
+      summary: 'Verifica libro vendibile'
+      operationId: verificaLibroVendibile
+      description: "Verifica se un libro è vendibile dato il numero annuo e l'ID utente, cioè se non è venduto o restituito e se la prenotazione è null o a nome dello stesso utente."
+      parameters:
+        -
+          in: query
+          name: userid
+          description: "L'ID dell'utente che vuole acquistare il libro."
+          example: null
+          required: true
+          schema:
+            type: integer
+            description: "L'ID dell'utente che vuole acquistare il libro."
+            example: null
+      responses: {  }
+      tags:
+        - Libro
+      security: []
+    parameters:
+      -
+        in: path
+        name: numeroAnnuo
+        description: 'Il numero annuo del libro da verificare.'
+        example: null
+        required: true
+        schema:
+          type: integer
+  '/api/libro/{id}/note':
+    patch:
+      summary: 'Modifica note libro'
+      operationId: modificaNoteLibro
+      description: 'Aggiorna le note associate a uno specifico libro.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Libro
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  description: 'Le nuove note da inserire.'
+                  example: null
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: "L'ID del libro."
+        example: null
+        required: true
+        schema:
+          type: integer
+  '/api/libro/{id}/prezzo':
+    patch:
+      summary: 'Modifica prezzo libro'
+      operationId: modificaPrezzoLibro
+      description: 'Aggiorna eccezionalmente il prezzo di uno specifico libro scavalcando il catalogo.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Libro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prezzo:
+                  type: numeric
+                  description: 'Il nuovo prezzo.'
+                  example: null
+              required:
+                - prezzo
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: "L'ID del libro."
+        example: null
+        required: true
+        schema:
+          type: integer
+  /api/libri:
+    get:
+      summary: 'Elenco libri'
+      operationId: elencoLibri
+      description: "Restituisce l'elenco completo dei libri presenti nel sistema con il loro stato (es. venduto, reso)."
+      parameters: []
+      responses: {  }
+      tags:
+        - Libro
+      security: []
+  /api/ricevute/prenotazione:
+    post:
+      summary: 'Nuova prenotazione'
+      operationId: nuovaPrenotazione
+      description: 'Crea una nuova ricevuta di prenotazione con uno o più libri.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Prenotazioni
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userid:
+                  type: integer
+                  description: "L'ID dell'utente che effettua la prenotazione."
+                  example: null
+                isbn:
+                  type: array
+                  description: 'Elenco degli ISBN da prenotare.'
+                  example: null
+                  items:
+                    type: string
+              required:
+                - userid
+                - isbn
+      security: []
+  '/api/ricevute/prenotazione/{id}':
+    get:
+      summary: 'Dettaglio prenotazione'
+      operationId: dettaglioPrenotazione
+      description: 'Restituisce i dati della ricevuta di prenotazione con i libri associati.'
+      parameters:
+        -
+          in: query
+          name: metadati
+          description: 'Dati della ricevuta da includere.'
+          example: null
+          required: false
+          schema:
+            type: boolean
+            description: 'Dati della ricevuta da includere.'
+            example: null
+        -
+          in: query
+          name: libri
+          description: 'Libri della ricevuta da includere.'
+          example: null
+          required: false
+          schema:
+            type: boolean
+            description: 'Libri della ricevuta da includere.'
+            example: null
+      responses: {  }
+      tags:
+        - Prenotazioni
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: "L'ID della prenotazione da visualizzare."
+        example: null
+        required: true
+        schema:
+          type: integer
+  /api/prenotazioni/rimuoviLibro:
+    post:
+      summary: 'Rimuovi libro prenotazione'
+      operationId: rimuoviLibroPrenotazione
+      description: "Rimuove l'assegnazione di un libro da una prenotazione."
+      parameters: []
+      responses: {  }
+      tags:
+        - Prenotazioni
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id_libro:
+                  type: integer
+                  description: 'ID del libro da scollegare.'
+                  example: null
+              required:
+                - id_libro
+      security: []
+  /api/prenotazioni/scambiaLibro:
+    post:
+      summary: 'Scambia libro prenotazione'
+      operationId: scambiaLibroPrenotazione
+      description: 'Sostituisce un libro già assegnato a una prenotazione con un altro libro disponibile.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Prenotazioni
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vecchio_id:
+                  type: integer
+                  description: 'ID del libro da sostituire.'
+                  example: null
+                nuovo_id:
+                  type: integer
+                  description: 'ID del nuovo libro.'
+                  example: null
+              required:
+                - vecchio_id
+                - nuovo_id
+      security: []
+  /api/prenotazioni:
+    get:
+      summary: 'Elenco prenotazioni'
+      operationId: elencoPrenotazioni
+      description: 'Restituisce tutte le prenotazioni registrate.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Prenotazioni
+      security: []
+  '/api/prenotazioni/libriScambiabili/{isbn}':
+    get:
+      summary: 'Libri scambiabili'
+      operationId: libriScambiabili
+      description: 'Restituisce i libri disponibili per sostituire un libro prenotato.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Prenotazioni
+      security: []
+    parameters:
+      -
+        in: path
+        name: isbn
+        description: "L'ISBN del libro di riferimento."
+        example: null
+        required: true
+        schema:
+          type: string
+  /api/registra:
+    post:
+      summary: 'Registrazione utente'
+      operationId: registrazioneUtente
+      description: 'Registra un nuovo utente nel sistema.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Registrazione
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                  description: "Il nome dell'utente."
+                  example: null
+                cognome:
+                  type: string
+                  description: "Il cognome dell'utente."
+                  example: null
+                email:
+                  type: string
+                  description: "L'email dell'utente."
+                  example: null
+                telefono:
+                  type: string
+                  description: "Il telefono dell'utente."
+                  example: null
+              required:
+                - nome
+                - cognome
+                - email
+                - telefono
+      security: []
+  /api/imposta-password:
+    post:
+      summary: 'Completa registrazione'
+      operationId: completaRegistrazione
+      description: 'Imposta o reimposta la password utilizzando il token ricevuto via email.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Registrazione
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: "L'email dell'utente."
+                  example: null
+                token:
+                  type: string
+                  description: 'Il token di sicurezza ricevuto via email.'
+                  example: null
+                password:
+                  type: string
+                  description: 'La nuova password.'
+                  example: null
+                password_confirmation:
+                  type: string
+                  description: 'Conferma della nuova password.'
+                  example: null
+                nickname:
+                  type: string
+                  description: "Il nickname scelto dall'utente."
+                  example: null
+              required:
+                - email
+                - token
+                - password
+                - password_confirmation
+                - nickname
+      security: []
+  /api/richiedi-link-password:
+    post:
+      summary: 'Richiesta link password'
+      operationId: richiestaLinkPassword
+      description: "Invia un link per impostare o reimpostare la password all'indirizzo email specificato."
+      parameters: []
+      responses: {  }
+      tags:
+        - Registrazione
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: "L'email dell'utente."
+                  example: null
+              required:
+                - email
+      security: []
+  /api/login:
+    post:
+      summary: 'Login utente'
+      operationId: loginUtente
+      description: 'Autentica un utente nel sistema e restituisce i dati della sessione.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Registrazione
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                  description: "La mail o il nickname dell'utente."
+                  example: null
+                password:
+                  type: string
+                  description: "La password dell'utente."
+                  example: null
+              required:
+                - login
+                - password
+      security: []
+  /api/logout:
+    post:
+      summary: 'Logout utente'
+      operationId: logoutUtente
+      description: "Effettua il logout dell'utente revoca il token di accesso."
+      parameters: []
+      responses: {  }
+      tags:
+        - Registrazione
+      security: []
+  /api/whoami:
+    get:
+      summary: 'Dati sessione corrente'
+      operationId: datiSessioneCorrente
+      description: "Restituisce le informazioni essenziali dell'utente attualmente autenticato."
+      parameters: []
+      responses: {  }
+      tags:
+        - Registrazione
+      security: []
+  /api/ricevute/restituzione/preview:
+    get:
+      summary: 'Anteprima restituzione'
+      operationId: anteprimaRestituzione
+      description: 'Mostra i libri restituibili e il valore stimato per un utente.'
+      parameters:
+        -
+          in: query
+          name: userid
+          description: "L'ID dell'utente da analizzare."
+          example: null
+          required: true
+          schema:
+            type: integer
+            description: "L'ID dell'utente da analizzare."
+            example: null
+      responses: {  }
+      tags:
+        - Restituzione
+      security: []
+  '/api/ricevute/restituzione/{id}':
+    get:
+      summary: 'Dettaglio restituzione'
+      operationId: dettaglioRestituzione
+      description: 'Restituisce i dati della ricevuta di restituzione con i libri associati.'
+      parameters:
+        -
+          in: query
+          name: metadati
+          description: 'Dati della ricevuta da includere.'
+          example: null
+          required: false
+          schema:
+            type: boolean
+            description: 'Dati della ricevuta da includere.'
+            example: null
+        -
+          in: query
+          name: libri
+          description: 'Libri della ricevuta da includere.'
+          example: null
+          required: false
+          schema:
+            type: boolean
+            description: 'Libri della ricevuta da includere.'
+            example: null
+      responses: {  }
+      tags:
+        - Restituzione
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: "L'ID della prenotazione da visualizzare."
+        example: null
+        required: true
+        schema:
+          type: integer
+  /api/ricevute/restituzione:
+    post:
+      summary: 'Nuova restituzione'
+      operationId: nuovaRestituzione
+      description: 'Crea una nuova ricevuta di restituzione per un utente.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Restituzione
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userid:
+                  type: integer
+                  description: "L'ID dell'utente che effettua la restituzione."
+                  example: null
+              required:
+                - userid
+      security: []
+  /api/ricevute/download:
+    get:
+      summary: 'PDF ricevuta'
+      operationId: pDFRicevuta
+      description: 'Restituisce il PDF della ricevuta.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Ricevute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: "L'ID della ricevuta da scaricare."
+                  example: null
+                tipo:
+                  type: string
+                  description: 'Il tipo di ricevuta (vendita, ritiro, restituzione).'
+                  example: null
+              required:
+                - id
+                - tipo
+      security: []
+  /api/ricevute:
+    get:
+      summary: 'Elenco ricevute'
+      operationId: elencoRicevute
+      description: "Mostra l'elenco delle ricevute registrate nel sistema, con eventuale filtraggio."
+      parameters:
+        -
+          in: query
+          name: numero
+          description: 'Numero progressivo della ricevuta.'
+          example: null
+          required: false
+          schema:
+            type: string
+            description: 'Numero progressivo della ricevuta.'
+            example: null
+        -
+          in: query
+          name: utente
+          description: "Nome o cognome dell'utente associato alla ricevuta."
+          example: null
+          required: false
+          schema:
+            type: string
+            description: "Nome o cognome dell'utente associato alla ricevuta."
+            example: null
+        -
+          in: query
+          name: libro
+          description: 'Numero del libro associato alla ricevuta.'
+          example: null
+          required: false
+          schema:
+            type: string
+            description: 'Numero del libro associato alla ricevuta.'
+            example: null
+        -
+          in: query
+          name: isbn
+          description: 'ISBN del libro associato alla ricevuta.'
+          example: null
+          required: false
+          schema:
+            type: string
+            description: 'ISBN del libro associato alla ricevuta.'
+            example: null
+        -
+          in: query
+          name: tipo
+          description: 'Tipo di ricevuta (Vendita, Ritiro, Restituzione).'
+          example: null
+          required: false
+          schema:
+            type: array
+            description: 'Tipo di ricevuta (Vendita, Ritiro, Restituzione).'
+            example: null
+            items:
+              type: string
+        -
+          in: query
+          name: date_from
+          description: 'Data di inizio per il filtro (formato YYYY-MM-DD).'
+          example: null
+          required: false
+          schema:
+            type: string
+            description: 'Data di inizio per il filtro (formato YYYY-MM-DD).'
+            example: null
+        -
+          in: query
+          name: date_to
+          description: 'Data di fine per il filtro (formato YYYY-MM-DD).'
+          example: null
+          required: false
+          schema:
+            type: string
+            description: 'Data di fine per il filtro (formato YYYY-MM-DD).'
+            example: null
+        -
+          in: query
+          name: user_id
+          description: "ID dell'utente associato alla ricevuta."
+          example: null
+          required: false
+          schema:
+            type: integer
+            description: "ID dell'utente associato alla ricevuta."
+            example: null
+      responses: {  }
+      tags:
+        - Ricevute
+      security: []
+  '/api/ricevute/ritiro/{id}':
+    get:
+      summary: 'Dettaglio ritiro'
+      operationId: dettaglioRitiro
+      description: 'Restituisce i dati della ricevuta di ritiro con i libri associati.'
+      parameters:
+        -
+          in: query
+          name: metadati
+          description: 'Dati della ricevuta da includere.'
+          example: null
+          required: false
+          schema:
+            type: boolean
+            description: 'Dati della ricevuta da includere.'
+            example: null
+        -
+          in: query
+          name: libri
+          description: 'Libri della ricevuta da includere.'
+          example: null
+          required: false
+          schema:
+            type: boolean
+            description: 'Libri della ricevuta da includere.'
+            example: null
+      responses: {  }
+      tags:
+        - Ritiro
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: "L'ID della prenotazione da visualizzare."
+        example: null
+        required: true
+        schema:
+          type: integer
+  /api/ricevute/ritiro:
+    post:
+      summary: 'Nuovo ritiro'
+      operationId: nuovoRitiro
+      description: 'Crea una nuova ricevuta di ritiro con uno o più libri.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Ritiro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userid:
+                  type: integer
+                  description: "L'ID dell'utente che effettua il ritiro."
+                  example: null
+                libri:
+                  type: array
+                  description: 'Elenco dei libri da ritirare.'
+                  example: null
+                  items:
+                    type: string
+              required:
+                - userid
+                - libri
+      security: []
+  /api/imposta-privilegi:
+    post:
+      summary: 'Imposta privilegi utente'
+      operationId: impostaPrivilegiUtente
+      description: 'Aumenta o diminuisce i privilegi di un utente indicandone la mail.'
+      parameters: []
+      responses: {  }
+      tags:
+        - 'Strumenti amministrativi'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: "L'indirizzo email dell'utente."
+                  example: null
+                livello:
+                  type: integer
+                  description: 'Il nuovo livello di privilegi (1: base, 2: gestore, 3: admin).'
+                  example: null
+              required:
+                - email
+                - livello
+      security: []
+  /api/elenco-utenti-ridotto:
+    get:
+      summary: 'Elenco ridotto utenti'
+      operationId: elencoRidottoUtenti
+      description: "Restituisce solo l'ID e il nominativo degli utenti."
+      parameters: []
+      responses: {  }
+      tags:
+        - Utenti
+      security: []
+  /api/elenco-utenti:
+    get:
+      summary: 'Elenco utenti'
+      operationId: elencoUtenti
+      description: "Restituisce l'elenco completo degli utenti con i dati anagrafici e lo stato di verifica."
+      parameters: []
+      responses: {  }
+      tags:
+        - Utenti
+      security: []
+  '/api/utente/{id}':
+    get:
+      summary: 'Dettaglio utente'
+      operationId: dettaglioUtente
+      description: 'Restituisce i dati completi di un utente specifico.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Utenti
+      security: []
+    patch:
+      summary: 'Aggiorna utente'
+      operationId: aggiornaUtente
+      description: "Modifica l'anagrafica e i contatti (email, telefono) di un utente."
+      parameters: []
+      responses: {  }
+      tags:
+        - Utenti
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                  description: "Il nuovo nome dell'utente."
+                  example: null
+                cognome:
+                  type: string
+                  description: "Il nuovo cognome dell'utente."
+                  example: null
+                email:
+                  type: string
+                  description: 'Il nuovo indirizzo email.'
+                  example: null
+                telefono:
+                  type: string
+                  description: 'Il nuovo numero di telefono.'
+                  example: null
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: "L'ID dell'utente da visualizzare."
+        example: null
+        required: true
+        schema:
+          type: integer
+  '/api/ricevute/vendita/{id}':
+    get:
+      summary: 'Dettaglio vendita'
+      operationId: dettaglioVendita
+      description: 'Restituisce i dati della ricevuta di vendita con i libri associati.'
+      parameters:
+        -
+          in: query
+          name: metadati
+          description: 'Dati della ricevuta da includere.'
+          example: null
+          required: false
+          schema:
+            type: boolean
+            description: 'Dati della ricevuta da includere.'
+            example: null
+        -
+          in: query
+          name: libri
+          description: 'Libri della ricevuta da includere.'
+          example: null
+          required: false
+          schema:
+            type: boolean
+            description: 'Libri della ricevuta da includere.'
+            example: null
+      responses: {  }
+      tags:
+        - Vendita
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: "L'ID della prenotazione da visualizzare."
+        example: null
+        required: true
+        schema:
+          type: integer
+  /api/ricevute/vendita:
+    post:
+      summary: 'Nuova vendita'
+      operationId: nuovaVendita
+      description: 'Crea una nuova ricevuta di vendita con uno o più libri.'
+      parameters: []
+      responses: {  }
+      tags:
+        - Vendita
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userid:
+                  type: integer
+                  description: "L'ID dell'utente che effettua la vendita."
+                  example: null
+                libri:
+                  type: array
+                  description: 'Elenco degli ID dei libri da vendere.'
+                  example: null
+                  items:
+                    type: string
+              required:
+                - userid
+                - libri
+      security: []

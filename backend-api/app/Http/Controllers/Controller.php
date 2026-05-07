@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Prenotazione;
+use App\Models\Restituzione;
+use App\Models\Ritiro;
+use App\Models\Utente;
+use App\Models\Vendita;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\DB;
 
 abstract class Controller
 {
@@ -69,7 +73,7 @@ abstract class Controller
      */
     protected function userExists(int $userId): bool
     {
-        return DB::table('utenti')->where('id', $userId)->exists();
+        return Utente::where('id', $userId)->exists();
     }
 
     /**
@@ -78,7 +82,16 @@ abstract class Controller
     protected function getNextProgressivo(string $table, string $column, ?int $anno = null): int
     {
         $anno = $anno ?? now()->year;
-        $max = DB::table($table)
+
+        $modelClass = match ($table) {
+            'prenotazioni' => Prenotazione::class,
+            'restituzioni' => Restituzione::class,
+            'ritiri' => Ritiro::class,
+            'vendite' => Vendita::class,
+            default => throw new \InvalidArgumentException("Tabella non supportata: {$table}"),
+        };
+
+        $max = $modelClass::query()
             ->whereYear('data', $anno)
             ->max($column);
 

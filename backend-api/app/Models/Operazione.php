@@ -47,7 +47,7 @@ class Operazione extends Model
             'data' => now(),
             'tipo' => $dati['tipo'],
             'libro' => $dati['libro'] ?? null,
-            'operatore' => Auth::id(),
+            'operatore' => Auth::user()?->id_utente,
             'importo' => round((float) $dati['importo'], 2),
             'causale' => $dati['causale'] ?? null,
         ]);

@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Utente extends Model
 {
     protected $table = 'utenti';
 
-    protected $primaryKey = 'ID';
+    protected $primaryKey = 'id';
 
     public $timestamps = false;
 
@@ -18,12 +19,17 @@ class Utente extends Model
         'telefono',
         'mail',
         'scuola',
-        'ID_registro',
+        'id_registro',
         'data',
     ];
 
-    public function user(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function user(): HasOne
     {
-        return $this->hasOne(User::class, 'ID_utenti', 'ID');
+        return $this->hasOne(Credenziali::class, 'id_utente', 'id');
+    }
+
+    public function getNomeCognome(): string
+    {
+        return "{$this->nome} {$this->cognome}";
     }
 }

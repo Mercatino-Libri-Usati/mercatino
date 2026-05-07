@@ -29,10 +29,10 @@ Table catalogo {
   vol text
 }
 
-Table libron {
+Table libri {
   id bigint [primary key]
   prezzo decimal
-  id_libro int
+  id_catalogo int
   id_ritiro int
   id_prenotazione int
   id_vendita int
@@ -64,7 +64,7 @@ Table personal_access_tokens {
   updated_at timestamp
 }
 
-Table prenotazionen {
+Table prenotazioni {
   id bigint [primary key]
   data timestamp
   id_utente int
@@ -72,16 +72,16 @@ Table prenotazionen {
   url_pdf text
 }
 
-Table pwd_request {
+Table richieste_password {
   id int [primary key]
-  id_utenti int
-  date_req datetime
+  id_utente int
+  richieste_password datetime
   token varchar
 }
 
 
 
-Table restituzionen {
+Table restituzioni {
   id bigint [primary key]
   data timestamp
   id_utente int
@@ -89,7 +89,7 @@ Table restituzionen {
   url_pdf text
 }
 
-Table ritiron {
+Table ritiri {
   id bigint [primary key]
   data timestamp
   id_utente int
@@ -99,9 +99,9 @@ Table ritiron {
 
 
 
-Table users {
+Table credenziali {
   ID int [primary key]
-  ID_utenti int
+  id_utente int
   nickname text
   password text
   privilegi int
@@ -133,24 +133,24 @@ Table venditan {
 // Foreign Keys Explicitly Defined in Database
 Ref: adozioni.ID_catalogo > catalogo.ID
 Ref: log_operazioni.operatore > utenti.ID
-Ref: log_operazioni.libro > libron.id
+Ref: log_operazioni.libro > libri.id
 
 // Implicit Relationships based on naming conventions
-Ref: libron.id_libro > catalogo.ID
-Ref: libron.id_ritiro > ritiron.id
-Ref: libron.id_prenotazione > prenotazionen.id
-Ref: libron.id_vendita > venditan.id
-Ref: libron.id_restituzione > restituzionen.id
+Ref: libri.id_catalogo > catalogo.ID
+Ref: libri.id_ritiro > ritiri.id
+Ref: libri.id_prenotazione > prenotazioni.id
+Ref: libri.id_vendita > venditan.id
+Ref: libri.id_restituzione > restituzioni.id
 
-Ref: prenotazionen.id_utente > utenti.ID
-Ref: restituzionen.id_utente > utenti.ID
-Ref: ritiron.id_utente > utenti.ID
+Ref: prenotazioni.id_utente > utenti.ID
+Ref: restituzioni.id_utente > utenti.ID
+Ref: ritiri.id_utente > utenti.ID
 Ref: venditan.id_utente > utenti.ID
 
 Ref: personal_access_tokens.name > utenti.ID
 
-Ref: pwd_request.id_utenti > utenti.ID
+Ref: richieste_password.id_utente > utenti.ID
 
 
 
-Ref: users.ID_utenti > utenti.ID
+Ref: credenziali.id_utente > utenti.ID
