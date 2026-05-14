@@ -38,6 +38,6 @@ class PdfRicevuteService
             Mail::to($utente->mail)->send(new RicevutaCreata($path));
         }
 
-        return route('ricevute.download', ['id' => $numero_ritiro, 'tipo' => $tipo]);
+        return '/api/ricevute/download?id='.$numero_ritiro.'&tipo='.$tipo;
     }
 }

@@ -9,6 +9,7 @@
 </template>
 
 <style scoped>
+.page-404 {
 display: flex;
 flex-direction: column;
 align-items: center;

@@ -1,32 +1,34 @@
 FROM php:8.4-apache
 
-# Install dependencies
+# Installa dipendenze necessarie per Laravel e le estensioni PHP con apt
 RUN apt-get update && \
     apt-get install -y \
     libzip-dev \
     zip
 
-# Enable mod_rewrite
+# Abilita mod_rewrite di Apache (permette di gestire meglio gli url)
 RUN a2enmod rewrite
 
-# Install PHP extensions
+# Installa estensioni PHP necessarie per Laravel
 RUN docker-php-ext-install pdo_mysql zip bcmath
 
+# Configura Apache per Laravel (cambia la document root)
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Copy the application code
+# Copia il codice sorgente del progetto nella directory di lavoro del container
 COPY . /var/www/html
 
-# Set the working directory
+# Imposta la directory di lavoro
 WORKDIR /var/www/html
 
-# Install composer
+# Installa Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install project dependencies
-RUN composer install
+# Installa le dipendenze di Laravel
+RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions
+# Imposta i permessi per le directory di storage e cache
+# Laravel deve poter scrivere in queste directory (per esempio per i log e le ricevute pdf)
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache

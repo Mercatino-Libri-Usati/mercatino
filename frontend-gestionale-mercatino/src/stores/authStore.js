@@ -39,7 +39,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         await apiClient.post('/api/logout')
       } catch (e) {
-        if (e.response && e.response.status !== 401) {
+        if (e.response && (e.response.status !== 401 || e.response.status !== 403)) {
           console.error('Errore durante il logout:', e)
         }
       } finally {
@@ -59,7 +59,7 @@ export const useAuthStore = defineStore('auth', {
       } catch (err) {
         this.user = null
         // Se l'errore è 401, siamo sloggati, altrimenti è un errore
-        if (err.response && err.response.status !== 401) {
+        if (err.response && err.response.status !== 401 && err.response.status !== 403) {
           this.error = err.response?.data?.message || err.message || 'Errore nel caricamento utente'
         }
         return false

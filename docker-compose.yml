@@ -1,0 +1,69 @@
+services:
+  db:
+    build:
+      context: .
+      dockerfile: mariadb/Dockerfile
+    container_name: mercatino-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "yes" 
+      MARIADB_DATABASE: mercatino
+    volumes:
+      - mercatino-db-data:/var/lib/mysql
+
+  backend:
+    build:
+      context: ./backend-api
+      dockerfile: Dockerfile
+    container_name: backend
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: mercatino
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  frontend-gestionale:
+    build:
+      context: ./frontend-gestionale-mercatino
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "http://localhost:8000"
+    container_name: frontend-gestionale
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  frontend-pubblico:
+    build:
+      context: ./sito-pubblico
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "http://localhost:8000"
+    container_name: frontend-pubblico
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  proxy:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: reverse-proxy
+    ports:
+      - "8000:80"
+    depends_on:
+      - frontend-gestionale
+      - frontend-pubblico
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mercatino-db-data:

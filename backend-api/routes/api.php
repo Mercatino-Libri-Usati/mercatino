@@ -17,8 +17,8 @@ use App\Http\Controllers\VenditaController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/registra', [RegisterController::class, 'register'])->middleware('throttle:5,1');
-Route::post('/imposta-password', [RegisterController::class, 'completeRegistration']);
-Route::post('/richiedi-link-password', [RegisterController::class, 'requestPasswordLink']);
+Route::post('/imposta-password', [RegisterController::class, 'completeRegistration'])->middleware('throttle:5,1');
+Route::post('/richiedi-link-password', [RegisterController::class, 'requestPasswordLink'])->middleware('throttle:5,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:15,1');
 
 Route::middleware('auth:sanctum')->group(function () {

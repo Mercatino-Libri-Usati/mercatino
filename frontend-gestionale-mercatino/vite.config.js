@@ -7,6 +7,7 @@ import compression from 'vite-plugin-compression'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/gestionale/',
   plugins: [vue(), vueDevTools(),
     compression({
       algorithm: 'gzip',

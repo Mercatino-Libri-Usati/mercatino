@@ -123,7 +123,7 @@ let isHandling401 = false
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       if (!isHandling401) {
         isHandling401 = true
         try {
